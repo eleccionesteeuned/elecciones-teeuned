@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TEEUNED — Portal Estudiantil</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   TEEUNED — FEUNED  |  style.css  |  v3.0
+   ═══════════════════════════════════════════════════════ */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap');
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f2149;--navy2:#1a3060;
+  --gold:#c9a84c;--gold2:#e8c96d;
+  --cream:#f8f5ee;--cream2:#f2ede2;
+  --white:#ffffff;
+  --text:#1a2744;--text2:#4a5a78;--text3:#8a97b2;
+  --success:#155c34;--success-bg:#e6f4ed;--success-border:#a3d4b8;
+  --success-col:#155c34;
+  --danger:#7a1515;--danger-bg:#fbebeb;--danger-border:#e8a0a0;
+  --danger-col:#7a1515;
+  --warn:#6b4c00;--warn-bg:#fef7e0;--warn-border:#e8c96d;
+  --warn-col:#6b4c00;
+  --info:#0d3d70;--info-bg:#e8f0fb;--info-border:#a8c4eb;
+  --info-col:#0d3d70;
+  --purple:#3b1f72;--purple-bg:#f0ebfb;--purple-border:#c8b0ef;
+  --border:#ddd8cc;--border2:#c8c2b4;
+  --radius:4px;--radius2:8px;
+  --shadow:0 2px 16px rgba(15,33,73,.12);--shadow2:0 8px 32px rgba(15,33,73,.18);
+}
+body{font-family:'Source Sans 3',system-ui,sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;line-height:1.2}
+button{cursor:pointer;font-family:inherit;border:none;transition:opacity .18s,transform .1s}
+button:hover{opacity:.86}
+button:active{transform:scale(.98)}
+input,select,textarea{font-family:inherit;font-size:15px;outline:none;transition:border-color .18s,box-shadow .18s}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{background:rgba(15,33,73,.25);border-radius:3px}
+
+/* ── NAVBAR ── */
+.navbar{background:var(--navy);border-bottom:3px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100}
+.nav-brand{color:var(--gold);font-family:'Playfair Display',serif;font-size:17px;font-weight:700;letter-spacing:.3px}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-user{text-align:right}
+.nav-user-name{color:rgba(255,255,255,.85);font-size:13px}
+.nav-user-role{color:var(--gold);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+.btn-nav{background:transparent;border:1px solid rgba(201,168,76,.4);color:var(--gold);padding:5px 13px;border-radius:var(--radius);font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+.fiscalia-bar{background:linear-gradient(90deg,var(--gold),#b8962e);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy)}
+
+/* ── MAIN CONTENT ── */
+.main-content{flex:1;padding:26px;max-width:1080px;margin:0 auto;width:100%}
+.app-shell{display:flex;flex-direction:column;min-height:100vh;background:var(--cream)}
+.app-footer{padding:13px;text-align:center;color:rgba(255,255,255,.22);font-size:11px;letter-spacing:1px;background:var(--navy)}
+
+/* ── PAGE TITLES ── */
+.page-title{font-size:24px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text2);margin-bottom:20px}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.btn-filter{padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);color:var(--text2);font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase}
+.btn-filter.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+
+/* ── PROCESS CARD ── */
+.process-card{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:var(--radius2);padding:18px 20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(15,33,73,.06);transition:box-shadow .2s}
+.process-card:hover{box-shadow:var(--shadow)}
+.process-card.closed-process{border-left-color:var(--text3);opacity:.82}
+.process-card.personas-process{border-left-color:var(--purple)}
+.process-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.process-title{font-size:15px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.process-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.process-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.process-actions{display:flex;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.process-date{font-size:11px;color:var(--text3);margin-left:auto}
+
+/* ── MINI BARS ── */
+.mini-bars{min-width:150px}
+.mini-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.mini-bar-label{font-size:11px;color:var(--text2);width:76px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-bar-track{flex:1;height:7px;background:var(--cream2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.mini-bar-fill{height:100%;border-radius:4px}
+.mini-bar-count{font-size:11px;font-weight:600;width:16px;text-align:right}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:3px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.badge-active{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-closed{background:#eeede9;color:var(--text2);border:1px solid var(--border)}
+.badge-open{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.badge-secret{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
+.badge-voted{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-gold{background:var(--navy);color:var(--gold);border:1px solid rgba(201,168,76,.5)}
+.badge-personas{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;border:1px solid transparent}
+.btn-primary{background:var(--navy);color:var(--gold);border-color:rgba(201,168,76,.4)}
+.btn-secondary{background:transparent;color:var(--navy);border-color:var(--border)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-danger{background:var(--danger);color:var(--white);border-color:var(--danger)}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-disabled{opacity:.35;cursor:not-allowed!important;pointer-events:none}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:var(--radius2);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+.card-header{padding:15px 20px;background:var(--cream);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-header-title{font-size:16px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif}
+.card-body{padding:20px}
+
+/* ── INFO BOXES ── */
+.info-box{border-radius:var(--radius);padding:11px 15px;font-size:13px;line-height:1.5;margin-bottom:14px}
+.info-success{background:var(--success-bg);border:1px solid var(--success-border);color:var(--success)}
+.info-danger{background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger)}
+.info-warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn)}
+.info-info{background:var(--info-bg);border:1px solid var(--info-border);color:var(--info)}
+.info-purple{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple)}
+
+/* ── VOTE OPTIONS ── */
+.vote-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.vote-option{flex:1;min-width:120px;border:2px solid var(--border);border-radius:var(--radius2);padding:16px 12px;cursor:pointer;text-align:center;background:var(--white);transition:all .18s}
+.vote-option:hover{border-color:var(--navy);background:var(--cream)}
+.vote-option.sel-favor{border-color:var(--success);background:var(--success-bg)}
+.vote-option.sel-contra{border-color:var(--danger);background:var(--danger-bg)}
+.vote-option.sel-abs{border-color:var(--warn);background:var(--warn-bg)}
+.vote-option.sel-persona{border-color:var(--purple);background:var(--purple-bg)}
+.vote-icon{font-size:28px;margin-bottom:7px}
+.vote-label{font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:'Playfair Display',serif}
+.vote-desc{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* ── RESULTS ── */
+.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.result-stat{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius2);padding:12px;text-align:center}
+.result-stat-value{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--navy)}
+.result-stat-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.result-bar-row{margin-bottom:13px}
+.result-bar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.result-bar-name{font-size:14px;font-weight:600;color:var(--text)}
+.result-bar-count{font-size:16px;font-weight:700;font-family:'Playfair Display',serif}
+.result-bar-track{height:20px;background:var(--cream2);border-radius:3px;border:1px solid var(--border);overflow:hidden}
+.result-bar-fill{height:100%;border-radius:3px;transition:width .7s ease}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:40px 22px;color:var(--text2);border:1px dashed var(--border2);border-radius:var(--radius2);background:var(--cream)}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.5}
+.empty-title{font-size:15px;font-weight:600;margin-bottom:5px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .main-content{padding:14px}
+  .result-stats{grid-template-columns:1fr}
+  .vote-grid{flex-direction:column}
+  .process-card-top{flex-direction:column}
+  .nav-user-name{display:none}
+}
+</style>
+</head>
+
+<body>
+<div class="app-shell">
+  <nav class="navbar">
+    <div class="nav-brand">TEEUNED — Portal Estudiantil</div>
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="nav-user-name" id="nav-name"></div>
+        <div class="nav-user-role">Estudiante UNED</div>
+      </div>
+      <button class="btn-nav" id="btn-back-app" onclick="goHome()" style="display:none">&#8592; Inicio</button>
+      <button class="btn-nav" onclick="doLogout()">Cerrar Sesion</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+
+    <div id="pane-dashboard">
+      <div class="page-title">Portal de Votacion Estudiantil</div>
+      <div class="page-subtitle">Procesos de votacion disponibles para su participacion</div>
+      <div class="filter-bar">
+        <button class="btn-filter active" onclick="setFilter('todas',this)">Todas</button>
+        <button class="btn-filter" onclick="setFilter('activa',this)">Activas</button>
+        <button class="btn-filter" onclick="setFilter('cerrada',this)">Cerradas</button>
+      </div>
+      <div id="process-list"></div>
+    </div>
+
+    <div id="pane-vote" style="display:none">
+      <div id="vote-step-choose">
+        <div style="margin-bottom:18px">
+          <div class="page-title" id="vote-proc-title"></div>
+          <div class="page-subtitle">Proceso de votacion activo</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-header-title">Emitir Voto</span>
+            <span class="badge badge-gold">Voto Secreto Garantizado</span>
+          </div>
+          <div class="card-body">
+            <div class="info-box info-info" id="vote-desc-box"></div>
+            <div id="vote-options-container"></div>
+            <div style="border-top:1px solid var(--border);padding-top:16px">
+              <div class="info-box info-warn">Una vez confirmado, su voto no podra modificarse. Cada estudiante tiene derecho a un unico voto por proceso.</div>
+              <div style="display:flex;gap:8px;justify-content:flex-end">
+                <button class="btn btn-secondary" onclick="goHome()">Cancelar</button>
+                <button class="btn btn-primary btn-disabled" id="btn-continue-vote" onclick="goVoteConfirm()">Continuar &#8594;</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vote-step-confirm" style="display:none">
+        <div class="card">
+          <div class="card-header"><span class="card-header-title">Confirmar Voto</span></div>
+          <div class="card-body">
+            <div class="confirm-center">
+              <div class="confirm-icon" id="confirm-icon"></div>
+              <div class="confirm-title" id="confirm-title"></div>
+              <div class="confirm-subtitle">
+                Confirma emitir su voto como <strong id="confirm-choice-name"></strong>?<br>
+                <span style="font-size:12px;color:var(--text3)">Esta accion es irreversible.</span>
+              </div>
+              <div class="confirm-actions">
+                <button class="btn btn-secondary" onclick="setVoteStep('choose')">&#8592; Cambiar voto</button>
+                <button class="btn btn-gold" onclick="submitVote()">&#10003; Confirmar y Votar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vote-step-done" style="display:none">
+        <div class="card">
+          <div class="card-header"><span class="card-header-title">Voto Registrado</span></div>
+          <div class="card-body">
+            <div class="confirm-center">
+              <div class="confirm-icon">&#9989;</div>
+              <div class="confirm-title" style="color:var(--success)">Voto Emitido Exitosamente</div>
+              <div class="confirm-subtitle">Su participacion fue registrada de forma segura y confidencial.</div>
+              <div class="info-box info-success" style="max-width:420px;margin:0 auto 14px;text-align:left">
+                Voto emitido: <strong id="done-choice"></strong><br>
+                Codigo de verificacion: <span style="font-family:monospace" id="done-hash"></span><br>
+                <span style="font-size:11px;opacity:.8">El voto secreto garantiza que su decision es confidencial.</span>
+              </div>
+              <div id="email-status-msg" style="min-height:18px;margin-bottom:14px"></div>
+              <div class="confirm-actions">
+                <button class="btn btn-primary" onclick="openResults(currentProcId)">Ver Resultados</button>
+                <button class="btn btn-secondary" onclick="goHome()">Volver al Inicio</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="pane-results" style="display:none">
+      <div style="margin-bottom:18px">
+        <div class="page-title" id="res-title"></div>
+        <div class="page-subtitle" id="res-desc"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-title">Resultados del Proceso</span>
+          <div class="card-actions" id="res-actions"></div>
+        </div>
+        <div class="card-body">
+          <div id="res-notice"></div>
+          <div class="result-stats" id="res-stats"></div>
+          <div id="res-bars"></div>
+          <div id="res-quorum"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="app-footer">TEEUNED - FEUNED · Universidad Estatal a Distancia de Costa Rica · v3.0</div>
+</div>
+
+<!-- Script 1 (UTILS, STORAGE, EMAIL, NOTIF) -->
+<script type="module">
+
+import { db } from "./firebase.js";
+
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const PALETTE=['#2e5fa3','#7a1f6e','#1a6b3c','#8b1a1a','#8a6e00','#1a5c6b','#5a2e8b','#6b3a1a'];
+
+const OFFICIALS=[
+  {id:'teeuned01',name:'TEEUNED',role:'teeuned',pass:'teeuned2024'},
+  {id:'fiscalia01',name:'Fiscal FEUNED',role:'fiscalia',pass:'fiscalia2024'},
+];
+
+function _mkProc(){
+  return[
+    {id:'p1',title:'Aprobacion del Presupuesto FEUNED 2025',
+     description:'Votacion para aprobar el presupuesto anual de la Federacion de Estudiantes de la UNED para el periodo fiscal 2025.',
+     type:'abierta',quorum:50,status:'activa',createdAt:'2024-11-15T10:00:00',candidates:null,
+     votes:[
+       {id:'v1',voterCarnet:'300123456',voterName:'Maria Rodriguez Gonzalez',voterHash:hash8('300123456'),choice:'a_favor',ts:'2024-11-15T10:15:00'},
+       {id:'v2',voterCarnet:'301234567',voterName:'Carlos Mendez Araya',voterHash:hash8('301234567'),choice:'a_favor',ts:'2024-11-15T10:20:00'},
+       {id:'v3',voterCarnet:'302345678',voterName:'Ana Jimenez Vargas',voterHash:hash8('302345678'),choice:'en_contra',ts:'2024-11-15T10:25:00'},
+     ],votedCarnets:['300123456','301234567','302345678']},
+    {id:'p2',title:'Reforma al Reglamento de Organizacion Estudiantil',
+     description:'Consulta estudiantil para aprobar las reformas propuestas al reglamento de la organizacion estudiantil de la UNED.',
+     type:'cerrada',quorum:100,status:'activa',createdAt:'2024-11-15T09:00:00',candidates:null,
+     votes:[
+       {id:'v4',voterCarnet:'300123456',voterName:'Maria Rodriguez Gonzalez',voterHash:hash8('300123456'),choice:'a_favor',ts:'2024-11-15T09:30:00'},
+       {id:'v5',voterCarnet:'303456789',voterName:'Luis Hernandez Mora',voterHash:hash8('303456789'),choice:'abstencion',ts:'2024-11-15T09:45:00'},
+     ],votedCarnets:['300123456','303456789']},
+    {id:'p3',title:'Eleccion de Representante Estudiantil Sede Central',
+     description:'Votacion para elegir al representante estudiantil de la Sede Central ante el Consejo Universitario de la UNED para el periodo 2025.',
+     type:'personas',quorum:80,status:'activa',createdAt:'2024-11-14T08:00:00',
+     candidates:[{id:'c1',name:'Andrea Solano Vargas'},{id:'c2',name:'Roberto Quesada Mora'},{id:'c3',name:'Patricia Jimenez Ulate'}],
+     votes:[
+       {id:'v6',voterCarnet:'300123456',voterName:'Maria R.',voterHash:hash8('300123456'),choice:'c1',ts:'2024-11-14T08:30:00'},
+       {id:'v7',voterCarnet:'301234567',voterName:'Carlos M.',voterHash:hash8('301234567'),choice:'c2',ts:'2024-11-14T08:45:00'},
+       {id:'v8',voterCarnet:'302345678',voterName:'Ana J.',voterHash:hash8('302345678'),choice:'c1',ts:'2024-11-14T09:00:00'},
+       {id:'v9',voterCarnet:'303456789',voterName:'Luis H.',voterHash:hash8('303456789'),choice:'c3',ts:'2024-11-14T09:10:00'},
+     ],votedCarnets:['300123456','301234567','302345678','303456789']},
+    {id:'p4',title:'Mocion de Censura a Directivo FEUNED',
+     description:'Proceso de votacion sobre la mocion de censura presentada contra un miembro de la directiva de la FEUNED.',
+     type:'cerrada',quorum:75,status:'cerrada',createdAt:'2024-11-10T14:00:00',candidates:null,
+     votes:[
+       {id:'va',voterCarnet:'300123456',voterName:'Maria R.',voterHash:hash8('300123456'),choice:'a_favor',ts:'2024-11-10T14:10:00'},
+       {id:'vb',voterCarnet:'301234567',voterName:'Carlos M.',voterHash:hash8('301234567'),choice:'en_contra',ts:'2024-11-10T14:15:00'},
+       {id:'vc',voterCarnet:'302345678',voterName:'Ana J.',voterHash:hash8('302345678'),choice:'a_favor',ts:'2024-11-10T14:20:00'},
+       {id:'vd',voterCarnet:'303456789',voterName:'Luis H.',voterHash:hash8('303456789'),choice:'abstencion',ts:'2024-11-10T14:25:00'},
+       {id:'ve',voterCarnet:'304567890',voterName:'Sofia C.',voterHash:hash8('304567890'),choice:'a_favor',ts:'2024-11-10T14:30:00'},
+     ],votedCarnets:['300123456','301234567','302345678','303456789','304567890']},
+  ];
+}
+
+// ============================
+// FIRESTORE PADRÓN
+// ============================
+
+async function getStudentByCarnet(carnet){
+  const ref = doc(db, "padron", carnet);
+  const snap = await getDoc(ref);
+  if(!snap.exists()) return null;
+  return snap.data();
+}
+
+// STORAGE
+function getProcesses(){var raw=localStorage.getItem('tee_processes');if(raw){try{return JSON.parse(raw);}catch(e){}}var d=_mkProc();saveProcesses(d);return d;}
+function saveProcesses(p){localStorage.setItem('tee_processes',JSON.stringify(p));}
+function getSession(){try{return JSON.parse(localStorage.getItem('tee_session')||'null');}catch(e){return null;}}
+function saveSession(u){localStorage.setItem('tee_session',JSON.stringify(u));}
+function clearSession(){localStorage.removeItem('tee_session');}
+function getEmailCfg(){try{return JSON.parse(localStorage.getItem('tee_emailcfg')||'{}');}catch(e){return{};}}
+function saveEmailCfg(c){localStorage.setItem('tee_emailcfg',JSON.stringify(c));}
+function getPasswords(){try{return JSON.parse(localStorage.getItem('tee_passwords')||'{}');}catch(e){return{};}}
+function savePasswords(p){localStorage.setItem('tee_passwords',JSON.stringify(p));}
+
+// AUTH
+function checkAuth(requiredRole){
+  var session=getSession();
+  if(!session){window.location.href='index.html';return null;}
+  if(requiredRole&&session.role!==requiredRole){
+    var map={student:'estudiante.html',teeuned:'teeuned.html',fiscalia:'fiscalia.html'};
+    window.location.href=map[session.role]||'index.html';
+    return null;
+  }
+  return session;
+}
+function doLogout(){clearSession();window.location.href='index.html';}
+
+// PASSWORDS
+function validateStudentPassword(carnet,pass){var p=getPasswords();return p[carnet]?p[carnet]===pass:pass==='1234';}
+function setStudentPassword(carnet,pass){var p=getPasswords();p[carnet]=pass;savePasswords(p);}
+function generatePassword(){var c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',p='F-';for(var i=0;i<6;i++)p+=c[Math.floor(Math.random()*c.length)];return p;}
+
+// UTILS
+function hash8(s){var h=5381;for(var i=0;i<s.length;i++)h=Math.imul((h<<5)+h,1)^s.charCodeAt(i);return(Math.abs(h)>>>0).toString(16).toUpperCase().padStart(8,'0');}
+function fmtDate(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtDateShort(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
+function getResults(p){
+  if(p.type==='personas'&&p.candidates){
+    var counts={};p.candidates.forEach(function(c){counts[c.id]=0;});
+    p.votes.forEach(function(v){if(counts[v.choice]!==undefined)counts[v.choice]++;});
+    var total=p.votes.length;
+    return{mode:'personas',candidates:p.candidates,counts:counts,total:total,pct:function(n){return total>0?Math.round(n/total*100):0;}};
+  }
+  var favor=p.votes.filter(function(v){return v.choice==='a_favor';}).length;
+  var contra=p.votes.filter(function(v){return v.choice==='en_contra';}).length;
+  var abs=p.votes.filter(function(v){return v.choice==='abstencion';}).length;
+  var total=p.votes.length;
+  return{mode:'standard',favor:favor,contra:contra,abs:abs,total:total,pct:function(n){return total>0?Math.round(n/total*100):0;}};
+}
+
+// EMAIL via Power Automate
+async function sendVoteConfirmation(vote,process,statusElId){
+  var el=statusElId?document.getElementById(statusElId):null;
+  var cfg=getEmailCfg();
+
+  if(!cfg.enabled||!cfg.webhookUrl){
+    if(el)el.innerHTML='<span style="color:#6b4c00;font-size:12px">Correo no configurado (configure Power Automate en el Padron - TEEUNED).</span>';
+    return;
+  }
+
+  const student = await getStudentByCarnet(vote.voterCarnet);
+  var email = student && student.email ? student.email : null;
+
+  if(!email){
+    if(el)el.innerHTML='<span style="color:#6b4c00;font-size:12px">Este estudiante no tiene correo registrado.</span>';
+    return;
+  }
+
+  if(el)el.innerHTML='<span style="color:#0d3d70;font-size:12px">Enviando correo de confirmacion...</span>';
+
+  fetch(cfg.webhookUrl,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      to_email:email,
+      to_name:vote.voterName,
+      carnet:vote.voterCarnet,
+      subject:'Confirmacion de voto - '+process.title,
+      body:'Estimado/a '+vote.voterName+',\n\nSu voto ha sido registrado exitosamente.\n\nProceso: '+process.title+'\nCarnet: '+vote.voterCarnet+'\nFecha: '+fmtDate(vote.ts)+'\nHora: '+fmtTime(vote.ts)+'\nCodigo de verificacion: #'+vote.voterHash+'\n\nPor garantia del voto secreto, no se revela la opcion seleccionada.\n\nFiscalia FEUNED - TEEUNED\nUniversidad Estatal a Distancia de Costa Rica'
+    })
+  }).then(function(){
+    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">&#10003; Correo enviado a '+email+'</span>';
+  }).catch(function(){
+    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">&#10003; Notificacion enviada a '+email+'</span>';
+  });
+}
+
+// NOTIFICATIONS
+var _nt=null;
+function showNotif(msg,type){
+  var el=document.getElementById('tee-notif');
+  if(!el){
+    el=document.createElement('div');
+    el.id='tee-notif';
+    el.style.cssText='position:fixed;top:70px;right:22px;z-index:9999;padding:12px 20px;border-radius:6px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.2);display:none;max-width:340px';
+    document.body.appendChild(el);
+  }
+  el.textContent=(type==='error'?'X ':'OK ')+msg;
+  el.style.background=type==='error'?'#7a1515':'#155c34';
+  el.style.color='#fff';
+  el.style.display='block';
+  if(_nt)clearTimeout(_nt);
+  _nt=setTimeout(function(){el.style.display='none';},3600);
+}
+
+window.checkAuth = checkAuth;
+window.doLogout = doLogout;
+window.getProcesses = getProcesses;
+window.saveProcesses = saveProcesses;
+window.getResults = getResults;
+window.fmtDateShort = fmtDateShort;
+window.fmtDate = fmtDate;
+window.fmtTime = fmtTime;
+window.hash8 = hash8;
+window.showNotif = showNotif;
+window.sendVoteConfirmation = sendVoteConfirmation;
+window.getStudentByCarnet = getStudentByCarnet;
+window.saveSession = saveSession;
+
+</script>
+
+<!-- Script 2 (APP) -->
+<script type="module">
+
+import { cargarProcesos, registrarVoto } from "./procesos.js";
+
+var session=null;
+var filterStatus='todas';
+var selectedVote=null;
+var currentProcId=null;
+var processes=[];
+
+document.addEventListener('DOMContentLoaded',async function(){
+  session = checkAuth('student');
+  if(!session) return;
+
+  const student = await getStudentByCarnet(session.carnet);
+  if(!student){
+    alert("⚠️ Su carnet no está registrado en el padrón. Contacte al TEEUNED.");
+    doLogout();
+    return;
+  }
+
+  document.getElementById('nav-name').textContent = student.name + ' (' + student.carnet + ')';
+  session.name = student.name;
+  saveSession(session);
+
+  processes = await cargarProcesos();
+  renderDashboard();
+});
+
+function showPane(name){
+  ['dashboard','vote','results'].forEach(function(p){
+    document.getElementById('pane-'+p).style.display=p===name?'block':'none';
+  });
+  document.getElementById('btn-back-app').style.display=name==='dashboard'?'none':'inline-block';
+}
+
+function goHome(){
+  selectedVote=null;currentProcId=null;
+  setVoteStep('choose');
+  renderDashboard();showPane('dashboard');
+}
+
+function setFilter(val,btn){
+  filterStatus=val;
+  document.querySelectorAll('.btn-filter').forEach(function(b){b.classList.remove('active');});
+  btn.classList.add('active');
+  renderDashboard();
+}
+
+function renderDashboard(){
+  var filtered=processes.filter(function(p){return filterStatus==='todas'||p.status===filterStatus;});
+  var listEl=document.getElementById('process-list');
+  listEl.innerHTML=filtered.length?filtered.map(renderCard).join('')
+    :'<div class="empty-state"><div class="empty-icon">&#128235;</div><div class="empty-title">Sin procesos en esta categoria</div></div>';
+}
+
+function renderCard(p){
+  var r=getResults(p);
+  var isActive=p.status==='activa';
+  var hasVoted=p.votedCarnets.indexOf(session.carnet)!==-1;
+  var sB=isActive?'<span class="badge badge-active">&#9679; Activa</span>':'<span class="badge badge-closed">&#9673; Cerrada</span>';
+  var tB=p.type==='abierta'?'<span class="badge badge-open">Abierta</span>':p.type==='personas'?'<span class="badge badge-personas">Personas</span>':'<span class="badge badge-secret">Cerrada</span>';
+  var vB=hasVoted?'<span class="badge badge-voted">&#10003; Votado</span>':'';
+  var bars='';
+  if(r.mode==='personas'){
+    bars=r.candidates.map(function(c,i){
+      var cnt=r.counts[c.id]||0;
+      return '<div class="mini-bar-row"><span class="mini-bar-label">'+c.name+'</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+r.pct(cnt)+'%;background:'+PALETTE[i%PALETTE.length]+'"></div></div><span class="mini-bar-count" style="color:'+PALETTE[i%PALETTE.length]+'">'+cnt+'</span></div>';
+    }).join('');
+  }else{
+    [{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}].forEach(function(b){
+      bars+='<div class="mini-bar-row"><span class="mini-bar-label">'+b.l+'</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+r.pct(b.c)+'%;background:'+b.col+'"></div></div><span class="mini-bar-count" style="color:'+b.col+'">'+b.c+'</span></div>';
+    });
+  }
+  var acts='';
+  if(isActive&&!hasVoted)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\')">&#128499; Votar</button>';
+  acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\',\'summary\')">&#128202; Ver Resultados</button>';
+  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+p.title+'</div><div class="process-desc">'+p.description+'</div><div class="process-meta">'+sB+tB+'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>'+vB+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
+}
+
+function openVote(pid){
+  var p=null;
+  for(var i=0;i<processes.length;i++){if(processes[i].id===pid){p=processes[i];break;}}
+  if(!p)return;
+  currentProcId=pid;selectedVote=null;
+  setVoteStep('choose');
+  document.getElementById('vote-proc-title').textContent=p.title;
+  document.getElementById('vote-desc-box').innerHTML='<strong>Asunto en votacion:</strong> '+p.description;
+  var container=document.getElementById('vote-options-container');
+  if(p.type==='personas'&&p.candidates){
+    var html='<div class="info-box info-purple">Seleccione al candidato/a de su preferencia. Esta votacion es estrictamente secreta.</div><div class="vote-grid">';
+    p.candidates.forEach(function(c,i){
+      html+='<div class="vote-option" onclick="selectVote(\''+c.id+'\',this)"><div class="vote-icon" style="font-size:24px;color:'+PALETTE[i%PALETTE.length]+'">&#128100;</div><div class="vote-label" style="color:'+PALETTE[i%PALETTE.length]+'">'+c.name+'</div><div class="vote-desc">Candidato/a '+(i+1)+'</div></div>';
+    });
+    container.innerHTML=html+'</div>';
+  }else{
+    container.innerHTML='<div class="vote-grid"><div class="vote-option" onclick="selectVote(\'a_favor\',this)"><div class="vote-icon">&#128077;</div><div class="vote-label">A Favor</div><div class="vote-desc">Aprueba la mocion</div></div><div class="vote-option" onclick="selectVote(\'en_contra\',this)"><div class="vote-icon">&#128078;</div><div class="vote-label">En Contra</div><div class="vote-desc">Rechaza la mocion</div></div><div class="vote-option" onclick="selectVote(\'abstencion\',this)"><div class="vote-icon">&#129296;</div><div class="vote-label">Abstencion</div><div class="vote-desc">Se abstiene de votar</div></div></div>';
+  }
+  document.getElementById('btn-continue-vote').classList.add('btn-disabled');
+  showPane('vote');
+}
+
+function selectVote(val,el){
+  selectedVote=val;
+  document.querySelectorAll('.vote-option').forEach(function(o){o.className='vote-option';});
+  var p=null;
+  for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
+  if(p&&p.type==='personas')el.classList.add('sel-persona');
+  else if(val==='a_favor')el.classList.add('sel-favor');
+  else if(val==='en_contra')el.classList.add('sel-contra');
+  else el.classList.add('sel-abs');
+  document.getElementById('btn-continue-vote').classList.remove('btn-disabled');
+}
+
+function goVoteConfirm(){
+  if(!selectedVote)return;
+  var p=null;
+  for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
+  var icon='&#128499;',title='',choiceName='';
+  if(p&&p.type==='personas'){
+    var cand=null;for(var j=0;j<p.candidates.length;j++){if(p.candidates[j].id===selectedVote){cand=p.candidates[j];break;}}
+    icon='&#128100;';title=cand?cand.name:'';choiceName=title;
+  }else{
+    var m={a_favor:{n:'A Favor',i:'&#128077;'},en_contra:{n:'En Contra',i:'&#128078;'},abstencion:{n:'Abstencion',i:'&#129296;'}};
+    var l=m[selectedVote]||{n:selectedVote,i:'&#128499;'};
+    icon=l.i;title=l.n;choiceName=l.n;
+  }
+  document.getElementById('confirm-icon').innerHTML=icon;
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-choice-name').textContent=choiceName;
+  setVoteStep('confirm');
+}
+
+function setVoteStep(step){
+  ['choose','confirm','done'].forEach(function(s){
+    document.getElementById('vote-step-'+s).style.display=s===step?'block':'none';
+  });
+}
+
+async function submitVote(){
+  if(!selectedVote||!currentProcId)return;
+  var p=null;
+  for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
+  var nv={id:'v'+Date.now(),voterCarnet:session.carnet,voterName:session.name,voterHash:hash8(session.carnet),choice:selectedVote,ts:new Date().toISOString()};
+
+  try{
+    await registrarVoto(currentProcId, nv);
+  }catch(e){
+    if(e.message==='ya-voto'){
+      showNotif('Usted ya emitio un voto en este proceso.','error');
+    }else{
+      showNotif('Error al registrar el voto. Intente de nuevo.','error');
+    }
+    return;
+  }
+
+  // Actualizar cache local
+  p.votes.push(nv);
+  p.votedCarnets.push(session.carnet);
+
+  var label=selectedVote;
+  if(p.type==='personas'){
+    var c2=null;for(var j=0;j<p.candidates.length;j++){if(p.candidates[j].id===selectedVote){c2=p.candidates[j];break;}}
+    label=c2?c2.name:selectedVote;
+  }else{
+    var map2={a_favor:'A Favor',en_contra:'En Contra',abstencion:'Abstencion'};
+    label=map2[selectedVote]||selectedVote;
+  }
+
+  document.getElementById('done-choice').textContent=label;
+  document.getElementById('done-hash').textContent='#'+nv.voterHash;
+  document.getElementById('email-status-msg').innerHTML='';
+  setVoteStep('done');
+  showNotif('Voto emitido correctamente.');
+  sendVoteConfirmation(nv,p,'email-status-msg');
+}
+
+function openResults(pid){
+  var p=null;
+  for(var i=0;i<processes.length;i++){if(processes[i].id===pid){p=processes[i];break;}}
+  if(!p)return;
+  currentProcId=pid;
+  document.getElementById('res-title').textContent=p.title;
+  document.getElementById('res-desc').textContent=p.description;
+  var r=getResults(p);
+  var isPersonas=p.type==='personas';
+  var notice='';
+  if(isPersonas)notice='<div class="info-box info-purple">Votacion de Personas - Siempre Secreta. Solo se muestran resultados finales agregados.</div>';
+  else if(p.type==='cerrada')notice='<div class="info-box info-info">Votacion Cerrada. Solo se muestran resultados agregados.</div>';
+  else notice='<div class="info-box info-warn">Votacion Abierta. Resultados publicos.</div>';
+  document.getElementById('res-notice').innerHTML=notice;
+  var part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
+  document.getElementById('res-stats').innerHTML=[{l:'Quorum Maximo',v:p.quorum,i:'&#128101;'},{l:'Votos Emitidos',v:r.total,i:'&#128499;'},{l:'Participacion',v:part+'%',i:'&#128202;'}].map(function(s){
+    return '<div class="result-stat"><div style="font-size:18px;margin-bottom:4px">'+s.i+'</div><div class="result-stat-value">'+s.v+'</div><div class="result-stat-label">'+s.l+'</div></div>';
+  }).join('');
+  var bars='';
+  if(r.mode==='personas'){
+    r.candidates.forEach(function(c,i){
+      var cnt=r.counts[c.id]||0,pct=r.pct(cnt),col=PALETTE[i%PALETTE.length];
+      bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+c.name+'</span><span class="result-bar-count" style="color:'+col+'">'+cnt+' <span style="font-size:12px;color:var(--text2)">('+pct+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>';
+    });
+  }else{
+    [{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}].forEach(function(b){
+      bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+b.l+'</span><span class="result-bar-count" style="color:'+b.col+'">'+b.c+' <span style="font-size:12px;color:var(--text2)">('+r.pct(b.c)+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+r.pct(b.c)+'%;background:'+b.col+'"></div></div></div>';
+    });
+  }
+  document.getElementById('res-bars').innerHTML=bars;
+  var hasQ=r.total>=p.quorum;
+  document.getElementById('res-quorum').innerHTML='<div class="info-box '+(hasQ?'info-success':'info-warn')+'" style="margin-top:12px">'+(hasQ?'Quorum alcanzado ('+r.total+'/'+p.quorum+').':'Quorum no alcanzado - '+r.total+'/'+p.quorum+' (faltan '+(p.quorum-r.total)+'.')+'</div>';
+  document.getElementById('res-actions').innerHTML='<button class="btn btn-secondary btn-sm" onclick="goHome()">Volver</button>';
+  showPane('results');
+}
+
+window.goHome = goHome;
+window.setFilter = setFilter;
+window.openVote = openVote;
+window.selectVote = selectVote;
+window.goVoteConfirm = goVoteConfirm;
+window.setVoteStep = setVoteStep;
+window.submitVote = submitVote;
+window.openResults = openResults;
+
+</script>
+
+</body>
+</html>

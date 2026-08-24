@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TEEUNED — Sistema de Votacion Electronica FEUNED</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap');
+   TEEUNED — FEUNED  |  style.css  |  v3.0
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f2149;--navy2:#1a3060;
+  --gold:#c9a84c;--gold2:#e8c96d;
+  --cream:#f8f5ee;--cream2:#f2ede2;
+  --white:#ffffff;
+  --text:#1a2744;--text2:#4a5a78;--text3:#8a97b2;
+  --success:#155c34;--success-bg:#e6f4ed;--success-border:#a3d4b8;
+  --success-col:#155c34;
+  --danger:#7a1515;--danger-bg:#fbebeb;--danger-border:#e8a0a0;
+  --danger-col:#7a1515;
+  --warn:#6b4c00;--warn-bg:#fef7e0;--warn-border:#e8c96d;
+  --warn-col:#6b4c00;
+  --info:#0d3d70;--info-bg:#e8f0fb;--info-border:#a8c4eb;
+  --info-col:#0d3d70;
+  --purple:#3b1f72;--purple-bg:#f0ebfb;--purple-border:#c8b0ef;
+  --border:#ddd8cc;--border2:#c8c2b4;
+  --radius:4px;--radius2:8px;
+  --shadow:0 2px 16px rgba(15,33,73,.12);--shadow2:0 8px 32px rgba(15,33,73,.18);
+}
+body{font-family:'Source Sans 3',system-ui,sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;line-height:1.2}
+button{cursor:pointer;font-family:inherit;border:none;transition:opacity .18s,transform .1s}
+button:hover{opacity:.86}
+button:active{transform:scale(.98)}
+input,select,textarea{font-family:inherit;font-size:15px;outline:none;transition:border-color .18s,box-shadow .18s}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{background:rgba(15,33,73,.25);border-radius:3px}
+
+/* ── NAVBAR ── */
+.navbar{background:var(--navy);border-bottom:3px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100}
+.nav-brand{color:var(--gold);font-family:'Playfair Display',serif;font-size:17px;font-weight:700;letter-spacing:.3px}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-user{text-align:right}
+.nav-user-name{color:rgba(255,255,255,.85);font-size:13px}
+.nav-user-role{color:var(--gold);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+.btn-nav{background:transparent;border:1px solid rgba(201,168,76,.4);color:var(--gold);padding:5px 13px;border-radius:var(--radius);font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+.fiscalia-bar{background:linear-gradient(90deg,var(--gold),#b8962e);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy)}
+
+/* ── MAIN CONTENT ── */
+.main-content{flex:1;padding:26px;max-width:1080px;margin:0 auto;width:100%}
+.app-shell{display:flex;flex-direction:column;min-height:100vh;background:var(--cream)}
+.app-footer{padding:13px;text-align:center;color:rgba(255,255,255,.22);font-size:11px;letter-spacing:1px;background:var(--navy)}
+
+/* ── PAGE TITLES ── */
+.page-title{font-size:24px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text2);margin-bottom:20px}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;text-align:center}
+.stat-icon{font-size:20px;margin-bottom:5px}
+.stat-value{font-size:26px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.btn-filter{padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);color:var(--text2);font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase}
+.btn-filter.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+
+/* ── PROCESS CARD ── */
+.process-card{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:var(--radius2);padding:18px 20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(15,33,73,.06);transition:box-shadow .2s}
+.process-card:hover{box-shadow:var(--shadow)}
+.process-card.closed-process{border-left-color:var(--text3);opacity:.82}
+.process-card.personas-process{border-left-color:var(--purple)}
+.process-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.process-title{font-size:15px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.process-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.process-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.process-actions{display:flex;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.process-date{font-size:11px;color:var(--text3);margin-left:auto}
+
+/* ── MINI BARS ── */
+.mini-bars{min-width:150px}
+.mini-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.mini-bar-label{font-size:11px;color:var(--text2);width:76px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-bar-track{flex:1;height:7px;background:var(--cream2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.mini-bar-fill{height:100%;border-radius:4px}
+.mini-bar-count{font-size:11px;font-weight:600;width:16px;text-align:right}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:3px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.badge-active{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-closed{background:#eeede9;color:var(--text2);border:1px solid var(--border)}
+.badge-open{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.badge-secret{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
+.badge-voted{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-gold{background:var(--navy);color:var(--gold);border:1px solid rgba(201,168,76,.5)}
+.badge-personas{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;border:1px solid transparent}
+.btn-primary{background:var(--navy);color:var(--gold);border-color:rgba(201,168,76,.4)}
+.btn-secondary{background:transparent;color:var(--navy);border-color:var(--border)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-danger{background:var(--danger);color:var(--white);border-color:var(--danger)}
+.btn-excel{background:#1e6e3a;color:var(--white);border-color:#1e6e3a}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-disabled{opacity:.35;cursor:not-allowed!important;pointer-events:none}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:var(--radius2);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+.card-header{padding:15px 20px;background:var(--cream);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-header-title{font-size:16px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif}
+.card-body{padding:20px}
+.card-actions{display:flex;gap:7px;flex-wrap:wrap}
+
+/* ── INFO BOXES ── */
+.info-box{border-radius:var(--radius);padding:11px 15px;font-size:13px;line-height:1.5;margin-bottom:14px}
+.info-success{background:var(--success-bg);border:1px solid var(--success-border);color:var(--success)}
+.info-danger{background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger)}
+.info-warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn)}
+.info-info{background:var(--info-bg);border:1px solid var(--info-border);color:var(--info)}
+.info-purple{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple)}
+
+/* ── VOTE OPTIONS ── */
+.vote-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.vote-option{flex:1;min-width:120px;border:2px solid var(--border);border-radius:var(--radius2);padding:16px 12px;cursor:pointer;text-align:center;background:var(--white);transition:all .18s}
+.vote-option:hover{border-color:var(--navy);background:var(--cream)}
+.vote-option.sel-favor{border-color:var(--success);background:var(--success-bg)}
+.vote-option.sel-contra{border-color:var(--danger);background:var(--danger-bg)}
+.vote-option.sel-abs{border-color:var(--warn);background:var(--warn-bg)}
+.vote-option.sel-persona{border-color:var(--purple);background:var(--purple-bg)}
+.vote-icon{font-size:28px;margin-bottom:7px}
+.vote-label{font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:'Playfair Display',serif}
+.vote-desc{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* ── RESULTS ── */
+.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.result-stat{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius2);padding:12px;text-align:center}
+.result-stat-value{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--navy)}
+.result-stat-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.result-bar-row{margin-bottom:13px}
+.result-bar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.result-bar-name{font-size:14px;font-weight:600;color:var(--text)}
+.result-bar-count{font-size:16px;font-weight:700;font-family:'Playfair Display',serif}
+.result-bar-track{height:20px;background:var(--cream2);border-radius:3px;border:1px solid var(--border);overflow:hidden}
+.result-bar-fill{height:100%;border-radius:3px;transition:width .7s ease}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:8px 11px;text-align:left;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);border-bottom:2px solid var(--border);background:var(--cream);white-space:nowrap}
+td{padding:10px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even){background:#fafaf7}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);color:var(--text);font-size:15px}
+textarea.field{resize:vertical;min-height:88px;line-height:1.5}
+label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px}
+.field-hint{font-size:12px;color:var(--text2);margin-top:5px}
+.field-error{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+
+/* ── CONFIRM ── */
+.confirm-center{text-align:center;padding:26px 20px}
+.confirm-icon{font-size:44px;margin-bottom:10px}
+.confirm-title{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:7px}
+.confirm-subtitle{font-size:14px;color:var(--text2);margin-bottom:20px}
+.confirm-actions{display:flex;gap:10px;justify-content:center}
+
+/* ── CANDIDATES BUILDER ── */
+.candidate-list{list-style:none;margin-bottom:10px}
+.candidate-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px}
+.candidate-name{flex:1;font-size:14px}
+.candidate-num{font-size:12px;font-weight:700;color:var(--purple);width:20px}
+.btn-remove-cand{background:var(--danger-bg);color:var(--danger);border:none;border-radius:3px;padding:3px 8px;font-size:12px;cursor:pointer}
+
+/* ── STUDENT MANAGER ── */
+.student-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius2);padding:24px;text-align:center;cursor:pointer;background:var(--cream);transition:border-color .2s;margin-bottom:12px}
+.upload-zone:hover{border-color:var(--gold)}
+.upload-zone-icon{font-size:28px;margin-bottom:8px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:40px 22px;color:var(--text2);border:1px dashed var(--border2);border-radius:var(--radius2);background:var(--cream)}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.5}
+.empty-title{font-size:15px;font-weight:600;margin-bottom:5px}
+
+/* ── PORTAL / LOGIN ── */
+.portal-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:linear-gradient(150deg,var(--navy) 0%,#1a3060 60%,#1e3f78 100%)}
+.portal-header{text-align:center;margin-bottom:32px}
+.portal-header h1{color:var(--gold);font-family:'Playfair Display',serif;font-size:27px;font-weight:700;margin-bottom:5px}
+.portal-divider{width:44px;height:2px;background:var(--gold);margin:12px auto;opacity:.5}
+.portal-header p{color:rgba(255,255,255,.48);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.portal-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;max-width:760px}
+.portal-card{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.2);border-radius:var(--radius2);padding:28px 20px;text-align:center;cursor:pointer;transition:all .22s;position:relative;overflow:hidden}
+.portal-card::before{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold);transform:scaleX(0);transition:transform .22s}
+.portal-card:hover{background:rgba(255,255,255,.08);border-color:rgba(201,168,76,.5);transform:translateY(-3px)}
+.portal-card:hover::before{transform:scaleX(1)}
+.portal-card:active{transform:scale(.98)}
+.portal-card-icon{font-size:32px;margin-bottom:12px}
+.portal-card-title{color:var(--gold);font-family:'Playfair Display',serif;font-size:16px;font-weight:700;margin-bottom:6px}
+.portal-card-desc{color:rgba(255,255,255,.42);font-size:12px;line-height:1.5}
+.portal-card-arrow{display:inline-block;margin-top:12px;font-size:17px;color:var(--gold);opacity:.6}
+.portal-card.teeuned-card{border-color:rgba(100,140,220,.25)}
+.portal-card.teeuned-card:hover{border-color:rgba(100,140,220,.65)}
+.portal-card.teeuned-card::before{background:#5a8ee0}
+.portal-card.fiscalia-card{border-color:rgba(201,140,60,.25)}
+.portal-card.fiscalia-card:hover{border-color:rgba(201,140,60,.65)}
+.portal-card.fiscalia-card::before{background:#c97a20}
+.login-section{width:100%;max-width:420px;margin-top:28px;background:var(--white);border-radius:var(--radius2);box-shadow:var(--shadow2);overflow:hidden;display:none}
+.login-section.visible{display:block}
+.login-sect-header{padding:22px 30px 18px;text-align:center;border-bottom:3px solid var(--gold)}
+.login-sect-header-student{background:var(--navy)}
+.login-sect-header-teeuned{background:#0d1f45}
+.login-sect-header-fiscalia{background:#2a1500}
+.login-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:3px;margin-bottom:8px}
+.badge-student-lbl{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3)}
+.badge-teeuned-lbl{background:rgba(90,142,224,.15);color:#7aaeff;border:1px solid rgba(90,142,224,.3)}
+.badge-fiscalia-lbl{background:rgba(201,120,32,.15);color:#e8a040;border:1px solid rgba(201,120,32,.3)}
+.login-sect-header h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:3px}
+.login-sect-header-student h2{color:var(--gold)}
+.login-sect-header-teeuned h2{color:#7aaeff}
+.login-sect-header-fiscalia h2{color:#e8a040}
+.login-sect-header p{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.login-sect-body{padding:24px 30px 28px}
+.btn-login{width:100%;padding:12px;border:1.5px solid;border-radius:var(--radius);font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase}
+.btn-login-student{background:var(--navy);color:var(--gold);border-color:var(--gold)}
+.btn-login-teeuned{background:#0d1f45;color:#7aaeff;border-color:#5a8ee0}
+.btn-login-fiscalia{background:#2a1500;color:#e8a040;border-color:#c97a20}
+.error-box{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--radius);padding:10px 14px;color:var(--danger);font-size:13px;margin-bottom:13px;display:none}
+.btn-forgot{background:none;border:none;color:rgba(255,255,255,.45);font-size:12px;letter-spacing:.5px;padding:8px 0;display:block;width:100%;text-align:center;cursor:pointer;margin-top:10px;transition:color .2s}
+.btn-forgot:hover{color:rgba(255,255,255,.75);opacity:1}
+.btn-back-portal{background:none;border:none;color:rgba(255,255,255,.35);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:6px 0;display:block;width:100%;max-width:420px;text-align:center;cursor:pointer;margin-top:12px;transition:color .2s}
+.btn-back-portal:hover{color:rgba(255,255,255,.7);opacity:1}
+.portal-footer{margin-top:24px;text-align:center;color:rgba(255,255,255,.18);font-size:11px;letter-spacing:1px}
+
+/* ── FORGOT PASSWORD ── */
+.forgot-section{width:100%;max-width:420px;margin-top:16px;background:var(--white);border-radius:var(--radius2);box-shadow:var(--shadow2);overflow:hidden;display:none}
+.forgot-section.visible{display:block}
+.forgot-header{background:var(--navy);padding:18px 28px;border-bottom:2px solid var(--gold)}
+.forgot-header h3{color:var(--gold);font-family:'Playfair Display',serif;font-size:17px}
+.forgot-header p{color:rgba(255,255,255,.45);font-size:12px;margin-top:3px}
+.forgot-body{padding:20px 28px 24px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .main-content{padding:14px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .result-stats,.form-row,.student-grid{grid-template-columns:1fr}
+  .vote-grid{flex-direction:column}
+  .process-card-top{flex-direction:column}
+  .portal-cards{grid-template-columns:1fr}
+  .login-section,.forgot-section,.btn-back-portal{max-width:100%}
+  .nav-user-name{display:none}
+}
+
+
+</style>
+</head>
+<body>
+<div class="portal-screen">
+  <div class="portal-header">
+    <h1>Sistema de Votacion Electronica</h1>
+    <div class="portal-divider"></div>
+    <p>FEUNED &middot; Tribunal Electoral Estudiantil &middot; UNED</p>
+    <p style="margin-top:5px;font-size:11px">Seleccione su portal de acceso</p>
+  </div>
+
+  <div class="portal-cards">
+    <div class="portal-card" id="card-student">
+      <div class="portal-card-icon">&#127979;</div>
+      <div class="portal-card-title">Portal Estudiantil</div>
+      <div class="portal-card-desc">Acceso para estudiantes matriculados en la UNED para participar en los procesos de votacion</div>
+      <div class="portal-card-arrow">&rarr;</div>
+    </div>
+    <div class="portal-card teeuned-card" id="card-teeuned">
+      <div class="portal-card-icon">&#127963;</div>
+      <div class="portal-card-title">Portal TEEUNED</div>
+      <div class="portal-card-desc">Tribunal Electoral Estudiantil &middot; Administracion y gestion de los procesos electorales</div>
+      <div class="portal-card-arrow" style="color:#7aaeff">&rarr;</div>
+    </div>
+    <div class="portal-card fiscalia-card" id="card-fiscalia">
+      <div class="portal-card-icon">&#128065;</div>
+      <div class="portal-card-title">Portal Fiscalia</div>
+      <div class="portal-card-desc">Fiscalia FEUNED &middot; Supervision y verificacion de los procesos de votacion electronica</div>
+      <div class="portal-card-arrow" style="color:#e8a040">&rarr;</div>
+    </div>
+  </div>
+
+  <div class="login-section" id="login-section">
+    <div class="login-sect-header" id="login-header">
+      <span class="login-badge" id="login-badge"></span>
+      <h2 id="login-title"></h2>
+      <p id="login-subtitle"></p>
+    </div>
+    <div class="login-sect-body">
+      <div class="form-group">
+        <label class="field-label" id="login-id-label">Numero de Carnet</label>
+        <input class="field" type="text" id="login-id" autocomplete="off" placeholder="Ej: 300123456">
+      </div>
+      <div class="form-group">
+        <label class="field-label">Contrasena</label>
+        <input class="field" type="password" id="login-pass" placeholder="Su contrasena">
+      </div>
+      <div class="error-box" id="login-error"></div>
+      <button class="btn-login btn-login-student" id="btn-login-main">Ingresar</button>
+      <button class="btn-forgot" id="btn-forgot" style="display:none">Olvido su contrasena?</button>
+    </div>
+  </div>
+
+  <div class="forgot-section" id="forgot-section">
+    <div class="forgot-header">
+      <h3>Restablecer Contrasena</h3>
+      <p>Solo disponible para estudiantes</p>
+    </div>
+    <div class="forgot-body">
+      <div class="form-group">
+        <label class="field-label">Numero de Carnet</label>
+        <input class="field" type="text" id="forgot-carnet" placeholder="Ej: 300123456">
+        <div class="field-hint">Ingrese su carnet para recibir una contrasena nueva por correo.</div>
+      </div>
+      <div id="forgot-status" style="min-height:20px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" id="btn-forgot-back">← Volver</button>
+        <button class="btn btn-primary" id="btn-forgot-send">Enviar nueva contrasena</button>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-back-portal" id="btn-back" style="display:none">← Volver al selector de portales</button>
+  <div class="portal-footer">Universidad Estatal a Distancia de Costa Rica &middot; Sistema de Votacion Electronica v3.0</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="shared.js"></script>
+<script>
+var activePortal = null;
+var PORTAL_CFG = {
+  student:  {hdr:'login-sect-header login-sect-header-student', bdgCls:'login-badge badge-student-lbl',  bdgTxt:'Portal Estudiantil',  h2:'Acceso Estudiantil',    sub:'Universidad Estatal a Distancia - UNED',     lbl:'Numero de Carnet',       ph:'Ej: 300123456',  btn:'btn-login btn-login-student',  forgot:true},
+  teeuned:  {hdr:'login-sect-header login-sect-header-teeuned', bdgCls:'login-badge badge-teeuned-lbl',  bdgTxt:'TEEUNED',             h2:'Tribunal Electoral',    sub:'Acceso Restringido - Personal Autorizado',  lbl:'Identificador TEEUNED',  ph:'Ej: teeuned01',  btn:'btn-login btn-login-teeuned',  forgot:false},
+  fiscalia: {hdr:'login-sect-header login-sect-header-fiscalia',bdgCls:'login-badge badge-fiscalia-lbl', bdgTxt:'Fiscalia FEUNED',     h2:'Portal de Supervision', sub:'Acceso Restringido - Solo Lectura',          lbl:'Identificador Fiscalia', ph:'Ej: fiscalia01', btn:'btn-login btn-login-fiscalia', forgot:false},
+};
+function selectPortal(role){
+  activePortal=role;
+  var c=PORTAL_CFG[role];
+  document.getElementById('login-id').value='';
+  document.getElementById('login-pass').value='';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('forgot-section').classList.remove('visible');
+  document.getElementById('login-header').className=c.hdr;
+  document.getElementById('login-badge').className=c.bdgCls;
+  document.getElementById('login-badge').textContent=c.bdgTxt;
+  document.getElementById('login-title').textContent=c.h2;
+  document.getElementById('login-subtitle').textContent=c.sub;
+  document.getElementById('login-id-label').textContent=c.lbl;
+  document.getElementById('login-id').placeholder=c.ph;
+  document.getElementById('btn-login-main').className=c.btn;
+  document.getElementById('btn-forgot').style.display=c.forgot?'block':'none';
+  document.getElementById('login-section').classList.add('visible');
+  document.getElementById('btn-back').style.display='block';
+  document.getElementById('login-id').focus();
+}
+function backToPortals(){
+  activePortal=null;
+  document.getElementById('login-section').classList.remove('visible');
+  document.getElementById('forgot-section').classList.remove('visible');
+  document.getElementById('btn-back').style.display='none';
+}
+function showError(msg){var e=document.getElementById('login-error');e.textContent='⚠ '+msg;e.style.display='block';}
+function doLogin(){
+  document.getElementById('login-error').style.display='none';
+  var id=document.getElementById('login-id').value.trim();
+  var pass=document.getElementById('login-pass').value;
+  if(!id) return showError('Ingrese su identificador.');
+  if(!pass) return showError('Ingrese su contrasena.');
+  if(!activePortal) return showError('Seleccione un portal de acceso.');
+  if(activePortal==='student'){
+    var students=getStudents(), found=null;
+    for(var i=0;i<students.length;i++){if(students[i].carnet===id){found=students[i];break;}}
+    if(!found) return showError('Carnet no encontrado. Solo estudiantes matriculados en la UNED pueden acceder.');
+    if(!validateStudentPassword(id,pass)) return showError('Contrasena incorrecta.');
+    saveSession({role:'student',carnet:found.carnet,name:found.name,email:found.email||''});
+    window.location.href='estudiante.html';
+  } else if(activePortal==='teeuned'){
+    var oTee=null;
+    for(var j=0;j<OFFICIALS.length;j++){if(OFFICIALS[j].id===id&&OFFICIALS[j].role==='teeuned'&&OFFICIALS[j].pass===pass){oTee=OFFICIALS[j];break;}}
+    if(!oTee) return showError('Credenciales incorrectas.');
+    saveSession({role:'teeuned',id:oTee.id,name:oTee.name});
+    window.location.href='teeuned.html';
+  } else if(activePortal==='fiscalia'){
+    var oFis=null;
+    for(var k=0;k<OFFICIALS.length;k++){if(OFFICIALS[k].id===id&&OFFICIALS[k].role==='fiscalia'&&OFFICIALS[k].pass===pass){oFis=OFFICIALS[k];break;}}
+    if(!oFis) return showError('Credenciales incorrectas.');
+    saveSession({role:'fiscalia',id:oFis.id,name:oFis.name});
+    window.location.href='fiscalia.html';
+  }
+}
+function showForgot(){
+  document.getElementById('login-section').classList.remove('visible');
+  document.getElementById('forgot-section').classList.add('visible');
+  document.getElementById('forgot-carnet').value='';
+  document.getElementById('forgot-status').innerHTML='';
+  document.getElementById('forgot-carnet').focus();
+}
+function hideForgot(){
+  document.getElementById('forgot-section').classList.remove('visible');
+  if(activePortal) document.getElementById('login-section').classList.add('visible');
+}
+function doForgotPassword(){
+  var carnet=document.getElementById('forgot-carnet').value.trim();
+  var sEl=document.getElementById('forgot-status');
+  sEl.innerHTML='';
+  if(!carnet){sEl.innerHTML='<span style="color:#7a1515;font-size:13px">Ingrese su numero de carnet.</span>';return;}
+  var students=getStudents(),stu=null;
+  for(var i=0;i<students.length;i++){if(students[i].carnet===carnet){stu=students[i];break;}}
+  if(!stu){sEl.innerHTML='<span style="color:#7a1515;font-size:13px">Carnet no encontrado en el padron.</span>';return;}
+  if(!stu.email){sEl.innerHTML='<span style="color:#7a1515;font-size:13px">No hay correo registrado. Contacte al TEEUNED.</span>';return;}
+  var np=generatePassword();
+  setStudentPassword(carnet,np);
+  var sent=sendPasswordReset(stu,np,'forgot-status');
+  if(!sent) sEl.innerHTML='<div class="info-box info-warn" style="margin:0">Correo no configurado. Contrasena temporal: <strong>'+np+'</strong></div>';
+}
+document.getElementById('card-student').onclick=function(){selectPortal('student');};
+document.getElementById('card-teeuned').onclick=function(){selectPortal('teeuned');};
+document.getElementById('card-fiscalia').onclick=function(){selectPortal('fiscalia');};
+document.getElementById('btn-login-main').onclick=doLogin;
+document.getElementById('btn-back').onclick=backToPortals;
+document.getElementById('btn-forgot').onclick=showForgot;
+document.getElementById('btn-forgot-back').onclick=hideForgot;
+document.getElementById('btn-forgot-send').onclick=doForgotPassword;
+document.getElementById('login-id').onkeydown=function(e){if(e.key==='Enter')doLogin();};
+document.getElementById('forgot-carnet').onkeydown=function(e){if(e.key==='Enter')doForgotPassword();};
+(function(){var s=getSession();if(s&&s.role){var d={student:'estudiante.html',teeuned:'teeuned.html',fiscalia:'fiscalia.html'};if(d[s.role])window.location.href=d[s.role];}})();
+</script>
+
+<!-- Login de estudiantes con Firestore -->
+<script type="module">
+import { db } from "./firebase.js";
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+async function doLoginFirestore() {
+  var errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  var id = document.getElementById('login-id').value.trim();
+  var pass = document.getElementById('login-pass').value;
+  if (!id) { errEl.textContent = '⚠ Ingrese su identificador.'; errEl.style.display='block'; return; }
+  if (!pass) { errEl.textContent = '⚠ Ingrese su contrasena.'; errEl.style.display='block'; return; }
+  var portal = window.activePortal;
+  if (!portal) { errEl.textContent = '⚠ Seleccione un portal de acceso.'; errEl.style.display='block'; return; }
+
+  if (portal === 'student') {
+    errEl.textContent = 'Verificando...'; errEl.style.display='block';
+    try {
+      var snap = await getDoc(doc(db, "padron", id));
+      if (!snap.exists()) {
+        errEl.textContent = '⚠ Carnet no encontrado. Solo estudiantes matriculados pueden acceder.';
+        errEl.style.display='block'; return;
+      }
+      var student = snap.data();
+      if (student.tempPassword && student.tempPassword === pass) {
+        if (Date.now() > student.tempPasswordExpires) {
+          errEl.textContent = '⚠ Su contraseña temporal ha expirado. Contacte al TEEUNED para obtener una nueva.';
+          errEl.style.display='block'; return;
+        }
+      } else if (!validateStudentPassword(id, pass)) {
+        errEl.textContent = '⚠ Contraseña incorrecta.'; errEl.style.display='block'; return;
+      }
+      saveSession({ role:'student', carnet:student.carnet, name:student.name, email:student.email||'' });
+      window.location.href = 'estudiante.html';
+    } catch(e) {
+      errEl.textContent = '⚠ Error de conexion. Intente de nuevo.'; errEl.style.display='block';
+    }
+  } else if (portal === 'teeuned') {
+    var OFFICIALS = [{id:'teeuned01',name:'TEEUNED',role:'teeuned',pass:'teeuned2024'}];
+    var found = OFFICIALS.find(function(o){ return o.id===id && o.role==='teeuned' && o.pass===pass; });
+    if (!found) { errEl.textContent = '⚠ Credenciales incorrectas.'; errEl.style.display='block'; return; }
+    saveSession({ role:'teeuned', id:found.id, name:found.name });
+    window.location.href = 'teeuned.html';
+  } else if (portal === 'fiscalia') {
+    var OFFICIALS2 = [{id:'fiscalia01',name:'Fiscal FEUNED',role:'fiscalia',pass:'fiscalia2024'}];
+    var found2 = OFFICIALS2.find(function(o){ return o.id===id && o.role==='fiscalia' && o.pass===pass; });
+    if (!found2) { errEl.textContent = '⚠ Credenciales incorrectas.'; errEl.style.display='block'; return; }
+    saveSession({ role:'fiscalia', id:found2.id, name:found2.name });
+    window.location.href = 'fiscalia.html';
+  }
+}
+
+document.getElementById('btn-login-main').onclick = doLoginFirestore;
+document.getElementById('login-id').onkeydown = function(e){ if(e.key==='Enter') doLoginFirestore(); };
+document.getElementById('login-pass').onkeydown = function(e){ if(e.key==='Enter') doLoginFirestore(); };
+</script>
+</body>
+</html>

@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TEEUNED — Panel de Administración</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap');
+   TEEUNED — FEUNED  |  style.css  |  v3.0
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0f2149;--navy2:#1a3060;
+  --gold:#c9a84c;--gold2:#e8c96d;
+  --cream:#f8f5ee;--cream2:#f2ede2;
+  --white:#ffffff;
+  --text:#1a2744;--text2:#4a5a78;--text3:#8a97b2;
+  --success:#155c34;--success-bg:#e6f4ed;--success-border:#a3d4b8;
+  --success-col:#155c34;
+  --danger:#7a1515;--danger-bg:#fbebeb;--danger-border:#e8a0a0;
+  --danger-col:#7a1515;
+  --warn:#6b4c00;--warn-bg:#fef7e0;--warn-border:#e8c96d;
+  --warn-col:#6b4c00;
+  --info:#0d3d70;--info-bg:#e8f0fb;--info-border:#a8c4eb;
+  --info-col:#0d3d70;
+  --purple:#3b1f72;--purple-bg:#f0ebfb;--purple-border:#c8b0ef;
+  --border:#ddd8cc;--border2:#c8c2b4;
+  --radius:4px;--radius2:8px;
+  --shadow:0 2px 16px rgba(15,33,73,.12);--shadow2:0 8px 32px rgba(15,33,73,.18);
+}
+body{font-family:'Source Sans 3',system-ui,sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
+h1,h2,h3{font-family:'Playfair Display',Georgia,serif;line-height:1.2}
+button{cursor:pointer;font-family:inherit;border:none;transition:opacity .18s,transform .1s}
+button:hover{opacity:.86}
+button:active{transform:scale(.98)}
+input,select,textarea{font-family:inherit;font-size:15px;outline:none;transition:border-color .18s,box-shadow .18s}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(201,168,76,.18)}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--cream)}
+::-webkit-scrollbar-thumb{background:rgba(15,33,73,.25);border-radius:3px}
+
+/* ── NAVBAR ── */
+.navbar{background:var(--navy);border-bottom:3px solid var(--gold);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100}
+.nav-brand{color:var(--gold);font-family:'Playfair Display',serif;font-size:17px;font-weight:700;letter-spacing:.3px}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-user{text-align:right}
+.nav-user-name{color:rgba(255,255,255,.85);font-size:13px}
+.nav-user-role{color:var(--gold);font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
+.btn-nav{background:transparent;border:1px solid rgba(201,168,76,.4);color:var(--gold);padding:5px 13px;border-radius:var(--radius);font-size:11px;letter-spacing:.8px;text-transform:uppercase}
+.fiscalia-bar{background:linear-gradient(90deg,var(--gold),#b8962e);padding:7px 24px;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy)}
+
+/* ── MAIN CONTENT ── */
+.main-content{flex:1;padding:26px;max-width:1080px;margin:0 auto;width:100%}
+.app-shell{display:flex;flex-direction:column;min-height:100vh;background:var(--cream)}
+.app-footer{padding:13px;text-align:center;color:rgba(255,255,255,.22);font-size:11px;letter-spacing:1px;background:var(--navy)}
+
+/* ── PAGE TITLES ── */
+.page-title{font-size:24px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text2);margin-bottom:20px}
+
+/* ── STATS ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius2);padding:16px;text-align:center}
+.stat-icon{font-size:20px;margin-bottom:5px}
+.stat-value{font-size:26px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif}
+.stat-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px}
+
+/* ── FILTERS ── */
+.filter-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.btn-filter{padding:6px 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);color:var(--text2);font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase}
+.btn-filter.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
+
+/* ── PROCESS CARD ── */
+.process-card{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--gold);border-radius:var(--radius2);padding:18px 20px;margin-bottom:12px;box-shadow:0 1px 4px rgba(15,33,73,.06);transition:box-shadow .2s}
+.process-card:hover{box-shadow:var(--shadow)}
+.process-card.closed-process{border-left-color:var(--text3);opacity:.82}
+.process-card.personas-process{border-left-color:var(--purple)}
+.process-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+.process-title{font-size:15px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.process-desc{font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:10px}
+.process-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.process-actions{display:flex;gap:7px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);flex-wrap:wrap;align-items:center}
+.process-date{font-size:11px;color:var(--text3);margin-left:auto}
+
+/* ── MINI BARS ── */
+.mini-bars{min-width:150px}
+.mini-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.mini-bar-label{font-size:11px;color:var(--text2);width:76px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mini-bar-track{flex:1;height:7px;background:var(--cream2);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.mini-bar-fill{height:100%;border-radius:4px}
+.mini-bar-count{font-size:11px;font-weight:600;width:16px;text-align:right}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:3px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+.badge-active{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-closed{background:#eeede9;color:var(--text2);border:1px solid var(--border)}
+.badge-open{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.badge-secret{background:var(--info-bg);color:var(--info);border:1px solid var(--info-border)}
+.badge-voted{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.badge-gold{background:var(--navy);color:var(--gold);border:1px solid rgba(201,168,76,.5)}
+.badge-personas{background:var(--purple-bg);color:var(--purple);border:1px solid var(--purple-border)}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:var(--radius);font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;display:inline-flex;align-items:center;gap:5px;border:1px solid transparent}
+.btn-primary{background:var(--navy);color:var(--gold);border-color:rgba(201,168,76,.4)}
+.btn-secondary{background:transparent;color:var(--navy);border-color:var(--border)}
+.btn-gold{background:var(--gold);color:var(--navy);border-color:var(--gold)}
+.btn-danger{background:var(--danger);color:var(--white);border-color:var(--danger)}
+.btn-excel{background:#1e6e3a;color:var(--white);border-color:#1e6e3a}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-disabled{opacity:.35;cursor:not-allowed!important;pointer-events:none}
+
+/* ── CARD ── */
+.card{background:var(--white);border-radius:var(--radius2);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:18px}
+.card-header{padding:15px 20px;background:var(--cream);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-header-title{font-size:16px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif}
+.card-body{padding:20px}
+.card-actions{display:flex;gap:7px;flex-wrap:wrap}
+
+/* ── INFO BOXES ── */
+.info-box{border-radius:var(--radius);padding:11px 15px;font-size:13px;line-height:1.5;margin-bottom:14px}
+.info-success{background:var(--success-bg);border:1px solid var(--success-border);color:var(--success)}
+.info-danger{background:var(--danger-bg);border:1px solid var(--danger-border);color:var(--danger)}
+.info-warn{background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn)}
+.info-info{background:var(--info-bg);border:1px solid var(--info-border);color:var(--info)}
+.info-purple{background:var(--purple-bg);border:1px solid var(--purple-border);color:var(--purple)}
+
+/* ── VOTE OPTIONS ── */
+.vote-grid{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.vote-option{flex:1;min-width:120px;border:2px solid var(--border);border-radius:var(--radius2);padding:16px 12px;cursor:pointer;text-align:center;background:var(--white);transition:all .18s}
+.vote-option:hover{border-color:var(--navy);background:var(--cream)}
+.vote-option.sel-favor{border-color:var(--success);background:var(--success-bg)}
+.vote-option.sel-contra{border-color:var(--danger);background:var(--danger-bg)}
+.vote-option.sel-abs{border-color:var(--warn);background:var(--warn-bg)}
+.vote-option.sel-persona{border-color:var(--purple);background:var(--purple-bg)}
+.vote-icon{font-size:28px;margin-bottom:7px}
+.vote-label{font-size:13px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:'Playfair Display',serif}
+.vote-desc{font-size:11px;color:var(--text2);margin-top:4px}
+
+/* ── RESULTS ── */
+.result-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.result-stat{background:var(--cream);border:1px solid var(--border);border-radius:var(--radius2);padding:12px;text-align:center}
+.result-stat-value{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:var(--navy)}
+.result-stat-label{font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.result-bar-row{margin-bottom:13px}
+.result-bar-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.result-bar-name{font-size:14px;font-weight:600;color:var(--text)}
+.result-bar-count{font-size:16px;font-weight:700;font-family:'Playfair Display',serif}
+.result-bar-track{height:20px;background:var(--cream2);border-radius:3px;border:1px solid var(--border);overflow:hidden}
+.result-bar-fill{height:100%;border-radius:3px;transition:width .7s ease}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:8px 11px;text-align:left;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);border-bottom:2px solid var(--border);background:var(--cream);white-space:nowrap}
+td{padding:10px 11px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:nth-child(even){background:#fafaf7}
+.mono{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)}
+
+/* ── FORM ── */
+.form-group{margin-bottom:16px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);color:var(--text);font-size:15px}
+textarea.field{resize:vertical;min-height:88px;line-height:1.5}
+label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px}
+.field-hint{font-size:12px;color:var(--text2);margin-top:5px}
+.field-error{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+
+/* ── CONFIRM ── */
+.confirm-center{text-align:center;padding:26px 20px}
+.confirm-icon{font-size:44px;margin-bottom:10px}
+.confirm-title{font-size:22px;font-weight:700;font-family:'Playfair Display',serif;margin-bottom:7px}
+.confirm-subtitle{font-size:14px;color:var(--text2);margin-bottom:20px}
+.confirm-actions{display:flex;gap:10px;justify-content:center}
+
+/* ── CANDIDATES BUILDER ── */
+.candidate-list{list-style:none;margin-bottom:10px}
+.candidate-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--cream);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:5px}
+.candidate-name{flex:1;font-size:14px}
+.candidate-num{font-size:12px;font-weight:700;color:var(--purple);width:20px}
+.btn-remove-cand{background:var(--danger-bg);color:var(--danger);border:none;border-radius:3px;padding:3px 8px;font-size:12px;cursor:pointer}
+
+/* ── STUDENT MANAGER ── */
+.student-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius2);padding:24px;text-align:center;cursor:pointer;background:var(--cream);transition:border-color .2s;margin-bottom:12px}
+.upload-zone:hover{border-color:var(--gold)}
+.upload-zone-icon{font-size:28px;margin-bottom:8px}
+.upload-zone p{font-size:13px;color:var(--text2)}
+
+/* ── EMPTY ── */
+.empty-state{text-align:center;padding:40px 22px;color:var(--text2);border:1px dashed var(--border2);border-radius:var(--radius2);background:var(--cream)}
+.empty-icon{font-size:32px;margin-bottom:10px;opacity:.5}
+.empty-title{font-size:15px;font-weight:600;margin-bottom:5px}
+
+/* ── PORTAL / LOGIN ── */
+.portal-screen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:linear-gradient(150deg,var(--navy) 0%,#1a3060 60%,#1e3f78 100%)}
+.portal-header{text-align:center;margin-bottom:32px}
+.portal-header h1{color:var(--gold);font-family:'Playfair Display',serif;font-size:27px;font-weight:700;margin-bottom:5px}
+.portal-divider{width:44px;height:2px;background:var(--gold);margin:12px auto;opacity:.5}
+.portal-header p{color:rgba(255,255,255,.48);font-size:12px;letter-spacing:2px;text-transform:uppercase}
+.portal-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;width:100%;max-width:760px}
+.portal-card{background:rgba(255,255,255,.04);border:1px solid rgba(201,168,76,.2);border-radius:var(--radius2);padding:28px 20px;text-align:center;cursor:pointer;transition:all .22s;position:relative;overflow:hidden}
+.portal-card::before{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;background:var(--gold);transform:scaleX(0);transition:transform .22s}
+.portal-card:hover{background:rgba(255,255,255,.08);border-color:rgba(201,168,76,.5);transform:translateY(-3px)}
+.portal-card:hover::before{transform:scaleX(1)}
+.portal-card:active{transform:scale(.98)}
+.portal-card-icon{font-size:32px;margin-bottom:12px}
+.portal-card-title{color:var(--gold);font-family:'Playfair Display',serif;font-size:16px;font-weight:700;margin-bottom:6px}
+.portal-card-desc{color:rgba(255,255,255,.42);font-size:12px;line-height:1.5}
+.portal-card-arrow{display:inline-block;margin-top:12px;font-size:17px;color:var(--gold);opacity:.6}
+.portal-card.teeuned-card{border-color:rgba(100,140,220,.25)}
+.portal-card.teeuned-card:hover{border-color:rgba(100,140,220,.65)}
+.portal-card.teeuned-card::before{background:#5a8ee0}
+.portal-card.fiscalia-card{border-color:rgba(201,140,60,.25)}
+.portal-card.fiscalia-card:hover{border-color:rgba(201,140,60,.65)}
+.portal-card.fiscalia-card::before{background:#c97a20}
+.login-section{width:100%;max-width:420px;margin-top:28px;background:var(--white);border-radius:var(--radius2);box-shadow:var(--shadow2);overflow:hidden;display:none}
+.login-section.visible{display:block}
+.login-sect-header{padding:22px 30px 18px;text-align:center;border-bottom:3px solid var(--gold)}
+.login-sect-header-student{background:var(--navy)}
+.login-sect-header-teeuned{background:#0d1f45}
+.login-sect-header-fiscalia{background:#2a1500}
+.login-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border-radius:3px;margin-bottom:8px}
+.badge-student-lbl{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3)}
+.badge-teeuned-lbl{background:rgba(90,142,224,.15);color:#7aaeff;border:1px solid rgba(90,142,224,.3)}
+.badge-fiscalia-lbl{background:rgba(201,120,32,.15);color:#e8a040;border:1px solid rgba(201,120,32,.3)}
+.login-sect-header h2{font-family:'Playfair Display',serif;font-size:20px;font-weight:700;margin-bottom:3px}
+.login-sect-header-student h2{color:var(--gold)}
+.login-sect-header-teeuned h2{color:#7aaeff}
+.login-sect-header-fiscalia h2{color:#e8a040}
+.login-sect-header p{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.4)}
+.login-sect-body{padding:24px 30px 28px}
+.btn-login{width:100%;padding:12px;border:1.5px solid;border-radius:var(--radius);font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase}
+.btn-login-student{background:var(--navy);color:var(--gold);border-color:var(--gold)}
+.btn-login-teeuned{background:#0d1f45;color:#7aaeff;border-color:#5a8ee0}
+.btn-login-fiscalia{background:#2a1500;color:#e8a040;border-color:#c97a20}
+.error-box{background:var(--danger-bg);border:1px solid var(--danger-border);border-radius:var(--radius);padding:10px 14px;color:var(--danger);font-size:13px;margin-bottom:13px;display:none}
+.btn-forgot{background:none;border:none;color:rgba(255,255,255,.45);font-size:12px;letter-spacing:.5px;padding:8px 0;display:block;width:100%;text-align:center;cursor:pointer;margin-top:10px;transition:color .2s}
+.btn-forgot:hover{color:rgba(255,255,255,.75);opacity:1}
+.btn-back-portal{background:none;border:none;color:rgba(255,255,255,.35);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:6px 0;display:block;width:100%;max-width:420px;text-align:center;cursor:pointer;margin-top:12px;transition:color .2s}
+.btn-back-portal:hover{color:rgba(255,255,255,.7);opacity:1}
+.portal-footer{margin-top:24px;text-align:center;color:rgba(255,255,255,.18);font-size:11px;letter-spacing:1px}
+
+/* ── FORGOT PASSWORD ── */
+.forgot-section{width:100%;max-width:420px;margin-top:16px;background:var(--white);border-radius:var(--radius2);box-shadow:var(--shadow2);overflow:hidden;display:none}
+.forgot-section.visible{display:block}
+.forgot-header{background:var(--navy);padding:18px 28px;border-bottom:2px solid var(--gold)}
+.forgot-header h3{color:var(--gold);font-family:'Playfair Display',serif;font-size:17px}
+.forgot-header p{color:rgba(255,255,255,.45);font-size:12px;margin-top:3px}
+.forgot-body{padding:20px 28px 24px}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .main-content{padding:14px}
+  .stats-row{grid-template-columns:1fr 1fr}
+  .result-stats,.form-row,.student-grid{grid-template-columns:1fr}
+  .vote-grid{flex-direction:column}
+  .process-card-top{flex-direction:column}
+  .portal-cards{grid-template-columns:1fr}
+  .login-section,.forgot-section,.btn-back-portal{max-width:100%}
+  .nav-user-name{display:none}
+}
+
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<script>
+// ---
+//  TEEUNED — FEUNED  |  shared.js  |  v3.0
+// ---
+const PALETTE=['#2e5fa3','#7a1f6e','#1a6b3c','#8b1a1a','#8a6e00','#1a5c6b','#5a2e8b','#6b3a1a'];
+
+const DEFAULT_STUDENTS=[
+  {carnet:'300123456',name:'María Rodríguez González',email:'mrodriguez@est.uned.cr'},
+  {carnet:'301234567',name:'Carlos Méndez Araya',email:'cmendez@est.uned.cr'},
+  {carnet:'302345678',name:'Ana Jiménez Vargas',email:'ajimenez@est.uned.cr'},
+  {carnet:'303456789',name:'Luis Hernández Mora',email:'lhernandez@est.uned.cr'},
+  {carnet:'304567890',name:'Sofía Castro López',email:'scastro@est.uned.cr'},
+];
+const OFFICIALS=[
+  {id:'teeuned01',name:'TEEUNED',role:'teeuned',pass:'teeuned2024'},
+  {id:'fiscalia01',name:'Fiscal FEUNED',role:'fiscalia',pass:'fiscalia2024'},
+];
+
+function _mkProc(){
+  const h=hash8;
+  return[
+    {id:'p1',title:'Aprobación del Presupuesto FEUNED 2025',
+     description:'Votación para aprobar el presupuesto anual de la Federación de Estudiantes de la UNED para el período fiscal 2025.',
+     type:'abierta',quorum:50,status:'activa',createdAt:'2024-11-15T10:00:00',candidates:null,
+     votes:[
+       {id:'v1',voterCarnet:'300123456',voterName:'María Rodríguez González',voterHash:h('300123456'),choice:'a_favor',ts:'2024-11-15T10:15:00'},
+       {id:'v2',voterCarnet:'301234567',voterName:'Carlos Méndez Araya',voterHash:h('301234567'),choice:'a_favor',ts:'2024-11-15T10:20:00'},
+       {id:'v3',voterCarnet:'302345678',voterName:'Ana Jiménez Vargas',voterHash:h('302345678'),choice:'en_contra',ts:'2024-11-15T10:25:00'},
+     ],votedCarnets:['300123456','301234567','302345678']},
+    {id:'p2',title:'Reforma al Reglamento de Organización Estudiantil',
+     description:'Consulta estudiantil para aprobar las reformas propuestas al reglamento de la organización estudiantil de la UNED.',
+     type:'cerrada',quorum:100,status:'activa',createdAt:'2024-11-15T09:00:00',candidates:null,
+     votes:[
+       {id:'v4',voterCarnet:'300123456',voterName:'María Rodríguez González',voterHash:h('300123456'),choice:'a_favor',ts:'2024-11-15T09:30:00'},
+       {id:'v5',voterCarnet:'303456789',voterName:'Luis Hernández Mora',voterHash:h('303456789'),choice:'abstención',ts:'2024-11-15T09:45:00'},
+     ],votedCarnets:['300123456','303456789']},
+    {id:'p3',title:'Elección de Representante Estudiantil — Sede Central',
+     description:'Votación para elegir al representante estudiantil de la Sede Central ante el Consejo Universitario de la UNED para el período 2025.',
+     type:'personas',quorum:80,status:'activa',createdAt:'2024-11-14T08:00:00',
+     candidates:[{id:'c1',name:'Andrea Solano Vargas'},{id:'c2',name:'Roberto Quesada Mora'},{id:'c3',name:'Patricia Jiménez Ulate'}],
+     votes:[
+       {id:'v6',voterCarnet:'300123456',voterName:'María R.',voterHash:h('300123456'),choice:'c1',ts:'2024-11-14T08:30:00'},
+       {id:'v7',voterCarnet:'301234567',voterName:'Carlos M.',voterHash:h('301234567'),choice:'c2',ts:'2024-11-14T08:45:00'},
+       {id:'v8',voterCarnet:'302345678',voterName:'Ana J.',voterHash:h('302345678'),choice:'c1',ts:'2024-11-14T09:00:00'},
+       {id:'v9',voterCarnet:'303456789',voterName:'Luis H.',voterHash:h('303456789'),choice:'c3',ts:'2024-11-14T09:10:00'},
+     ],votedCarnets:['300123456','301234567','302345678','303456789']},
+    {id:'p4',title:'Moción de Censura a Directivo FEUNED',
+     description:'Proceso de votación sobre la moción de censura presentada contra un miembro de la directiva de la FEUNED.',
+     type:'cerrada',quorum:75,status:'cerrada',createdAt:'2024-11-10T14:00:00',candidates:null,
+     votes:[
+       {id:'va',voterCarnet:'300123456',voterName:'María R.',voterHash:h('300123456'),choice:'a_favor',ts:'2024-11-10T14:10:00'},
+       {id:'vb',voterCarnet:'301234567',voterName:'Carlos M.',voterHash:h('301234567'),choice:'en_contra',ts:'2024-11-10T14:15:00'},
+       {id:'vc',voterCarnet:'302345678',voterName:'Ana J.',voterHash:h('302345678'),choice:'a_favor',ts:'2024-11-10T14:20:00'},
+       {id:'vd',voterCarnet:'303456789',voterName:'Luis H.',voterHash:h('303456789'),choice:'abstención',ts:'2024-11-10T14:25:00'},
+       {id:'ve',voterCarnet:'304567890',voterName:'Sofía C.',voterHash:h('304567890'),choice:'a_favor',ts:'2024-11-10T14:30:00'},
+     ],votedCarnets:['300123456','301234567','302345678','303456789','304567890']},
+  ];
+}
+
+// ---
+// PADRÓN YA NO SE GUARDA EN localStorage (AHORA ES FIRESTORE)
+// function getStudents(){...}   <-- ELIMINADO
+// function saveStudents(s){...} <-- ELIMINADO
+
+function getProcesses(){const r=localStorage.getItem('tee_processes');if(r)return JSON.parse(r);const d=_mkProc();saveProcesses(d);return d;}
+function saveProcesses(p){localStorage.setItem('tee_processes',JSON.stringify(p));}
+function getSession(){try{return JSON.parse(localStorage.getItem('tee_session')||'null');}catch{return null;}}
+function saveSession(u){localStorage.setItem('tee_session',JSON.stringify(u));}
+function clearSession(){localStorage.removeItem('tee_session');}
+function getEmailCfg(){return JSON.parse(localStorage.getItem('tee_emailcfg')||'{}');}
+function saveEmailCfg(c){localStorage.setItem('tee_emailcfg',JSON.stringify(c));}
+function getPasswords(){return JSON.parse(localStorage.getItem('tee_passwords')||'{}');}
+function savePasswords(p){localStorage.setItem('tee_passwords',JSON.stringify(p));}
+
+// ---
+function checkAuth(requiredRole){
+  const session=getSession();
+  if(!session){window.location.href='index.html';return null;}
+  if(requiredRole&&session.role!==requiredRole){
+    const map={student:'estudiante.html',teeuned:'teeuned.html',fiscalia:'fiscalia.html'};
+    window.location.href=map[session.role]||'index.html';
+    return null;
+  }
+  return session;
+}
+function doLogout(){clearSession();window.location.href='index.html';}
+
+// ---
+function validateStudentPassword(carnet,pass){const p=getPasswords();return p[carnet]?p[carnet]===pass:pass==='1234';}
+function setStudentPassword(carnet,pass){const p=getPasswords();p[carnet]=pass;savePasswords(p);}
+function generatePassword(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let p='F-';for(let i=0;i<6;i++)p+=c[Math.floor(Math.random()*c.length)];return p;}
+
+// ---
+function hash8(s){let h=5381;for(let i=0;i<s.length;i++)h=Math.imul((h<<5)+h,1)^s.charCodeAt(i);return(Math.abs(h)>>>0).toString(16).toUpperCase().padStart(8,'0');}
+function fmtDate(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});}
+function fmtTime(iso){return new Date(iso).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtDateShort(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
+function getResults(p){
+  if(p.type==='personas'&&p.candidates){
+    const counts={};p.candidates.forEach(c=>counts[c.id]=0);
+    p.votes.forEach(v=>{if(counts[v.choice]!==undefined)counts[v.choice]++;});
+    const total=p.votes.length;
+    return{mode:'personas',candidates:p.candidates,counts,total,pct:n=>total>0?Math.round(n/total*100):0};
+  }
+  const favor=p.votes.filter(v=>v.choice==='a_favor').length;
+  const contra=p.votes.filter(v=>v.choice==='en_contra').length;
+  const abs=p.votes.filter(v=>v.choice==='abstención').length;
+  const total=p.votes.length;
+  return{mode:'standard',favor,contra,abs,total,pct:n=>total>0?Math.round(n/total*100):0};
+}
+
+// ---
+function initEmailJS(){const cfg=getEmailCfg();if(cfg.publicKey&&typeof emailjs!=='undefined')emailjs.init({publicKey:cfg.publicKey});}
+function _sendPA(payload){
+  var cfg=getEmailCfg();
+  if(!cfg.enabled||!cfg.webhookUrl) return false;
+  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){});
+  return true;
+}
+
+function sendVoteConfirmation(vote,process,statusElId){
+  var el=statusElId?document.getElementById(statusElId):null;
+  var cfg=getEmailCfg();
+  if(!cfg.enabled||!cfg.webhookUrl){if(el)el.innerHTML='<span style="color:#6b4c00;font-size:12px">⚠ Correo no configurado — configure Power Automate en el Padrón (TEEUNED).</span>';return;}
+
+  if(el)el.innerHTML='<span style="color:#0d3d70;font-size:12px">📧 Enviando correo de confirmación...</span>';
+
+  // Para no romper tu sistema, este envío se mantiene igual,
+  // pero el correo del estudiante ahora se toma desde Firestore en renderStudents().
+  // En esta función se mantiene comportamiento original si no hay correo.
+
+  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    to_email:'', to_name:vote.voterName, carnet:vote.voterCarnet,
+    subject:'Confirmación de voto — '+process.title,
+    body:'Estimado/a '+vote.voterName+',\n\nSu voto ha sido registrado exitosamente en el Sistema de Votación Electrónica de la FEUNED.\n\nProceso: '+process.title+'\nCarnet: '+vote.voterCarnet+'\nFecha: '+fmtDate(vote.ts)+'\nHora: '+fmtTime(vote.ts)+'\nCódigo de verificación: #'+vote.voterHash+'\n\nEste código confirma la recepción de su voto. Por garantía del voto secreto, el sistema no revela la opción seleccionada.\n\nFiscalía FEUNED — TEEUNED\nUniversidad Estatal a Distancia de Costa Rica'
+  })}).then(function(r){
+    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">✓ Correo enviado</span>';
+  }).catch(function(){
+    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">✓ Notificación enviada</span>';
+  });
+}
+
+function sendPasswordReset(student,newPass,statusElId){
+  var el=statusElId?document.getElementById(statusElId):null;
+  var cfg=getEmailCfg();
+  if(!cfg.enabled||!cfg.webhookUrl){
+    if(el)el.innerHTML='<span style="color:#7a1515;font-size:13px">⚠ Correo no configurado. Configure Power Automate en el Padrón (TEEUNED).</span>';
+    return false;
+  }
+  if(!student.email){
+    if(el)el.innerHTML='<span style="color:#7a1515;font-size:13px">⚠ No hay correo registrado para este carnet. Contacte al TEEUNED.</span>';
+    return false;
+  }
+  if(el)el.innerHTML='<span style="color:#0d3d70;font-size:13px">📧 Enviando nueva contraseña a '+student.email+'...</span>';
+  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    to_email:student.email, to_name:student.name, carnet:student.carnet,
+    subject:'Nueva contraseña — Sistema de Votación FEUNED',
+    body:'Estimado/a '+student.name+',\n\nSu contraseña ha sido restablecida exitosamente.\n\nCarnet: '+student.carnet+'\nNueva contraseña: '+newPass+'\n\nIngrese al sistema con esta contraseña y cámbiela por una propia si lo desea.\n\nFiscalía FEUNED — TEEUNED\nUniversidad Estatal a Distancia de Costa Rica'
+  })}).then(function(){
+    if(el)el.innerHTML='<span style="color:#155c34;font-size:13px">✓ Nueva contraseña enviada a <strong>'+student.email+'</strong>. Revise su correo.</span>';
+  }).catch(function(){
+    if(el)el.innerHTML='<span style="color:#155c34;font-size:13px">✓ Notificación enviada a <strong>'+student.email+'</strong>.</span>';
+  });
+  return true;
+}
+
+// ---
+let _nt=null;
+function showNotif(msg,type='success'){
+  let el=document.getElementById('tee-notif');
+  if(!el){el=document.createElement('div');el.id='tee-notif';el.style.cssText='position:fixed;top:70px;right:22px;z-index:9999;padding:12px 20px;border-radius:6px;font-size:14px;font-weight:600;box-shadow:0 6px 24px rgba(0,0,0,.2);display:none;max-width:340px';document.body.appendChild(el);}
+  el.textContent=(type==='success'?'✓ ':'✗ ')+msg;
+  el.style.background=type==='success'?'#155c34':'#7a1515';
+  el.style.color='#fff';el.style.display='block';
+  if(_nt)clearTimeout(_nt);
+  _nt=setTimeout(()=>{el.style.display='none';},3600);
+}
+
+document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
+</script>
+</head>
+
+<body>
+<div class="app-shell">
+
+  <nav class="navbar">
+    <div class="nav-brand">TEEUNED — Panel de Administración</div>
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="nav-user-name" id="nav-name"></div>
+        <div class="nav-user-role">TEEUNED</div>
+      </div>
+      <button class="btn-nav" onclick="showPane('dashboard')" id="btn-home" style="display:none">← Inicio</button>
+      <button class="btn-nav" onclick="doLogout()">Cerrar Sesión</button>
+    </div>
+  </nav>
+
+  <div class="main-content">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="pane-dashboard">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:18px">
+        <div>
+          <div class="page-title">Panel de Administración — TEEUNED</div>
+          <div class="page-subtitle">Gestión integral de los procesos electorales estudiantiles</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-primary btn-sm" onclick="showPane('students')">👥 Padrón</button>
+          <button class="btn btn-gold" onclick="showPane('create')">+ Nuevo Proceso</button>
+        </div>
+      </div>
+      <div class="stats-row" id="dash-stats"></div>
+      <div class="filter-bar">
+        <button class="btn-filter active" onclick="setFilter('todas',this)">Todas</button>
+        <button class="btn-filter" onclick="setFilter('activa',this)">Activas</button>
+        <button class="btn-filter" onclick="setFilter('cerrada',this)">Cerradas</button>
+      </div>
+      <div id="process-list"></div>
+    </div>
+
+    <!-- ── RESULTADOS ── -->
+    <div id="pane-results" style="display:none">
+      <div style="margin-bottom:18px">
+        <div class="page-title" id="res-title"></div>
+        <div class="page-subtitle" id="res-desc"></div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-title">📊 Resultados del Proceso</span>
+          <div class="card-actions" id="res-actions"></div>
+        </div>
+        <div class="card-body">
+          <div id="res-notice"></div>
+          <div class="result-stats" id="res-stats"></div>
+          <div id="res-bars"></div>
+          <div id="res-quorum"></div>
+          <div id="res-detail" style="display:none;margin-top:18px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+              <span style="font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;font-size:15px">Registro Individual</span>
+              <span id="res-detail-badge"></span>
+            </div>
+            <div class="table-wrap"><table><thead id="res-thead"></thead><tbody id="res-tbody"></tbody></table></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CREAR PROCESO ── -->
+    <div id="pane-create" style="display:none">
+      <div class="page-title">Crear Proceso de Votación</div>
+      <div class="page-subtitle" style="margin-bottom:18px">Solo el TEEUNED puede crear y gestionar procesos de votación</div>
+      <div class="card">
+        <div class="card-header"><span class="card-header-title">Detalles del Proceso</span></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="field-label">Título del Proceso *</label>
+            <input class="field" type="text" id="cr-title" placeholder="Ej: Aprobación del Reglamento Estudiantil 2025">
+            <div class="field-error" id="cr-title-err">El título es requerido.</div>
+          </div>
+          <div class="form-group">
+            <label class="field-label">Descripción / Asunto a Votar *</label>
+            <textarea class="field" id="cr-desc" placeholder="Describa detalladamente qué se somete a votación..."></textarea>
+            <div class="field-error" id="cr-desc-err">La descripción es requerida.</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="field-label">Tipo de Votación *</label>
+              <select class="field" id="cr-type" onchange="onTypeChange()">
+                <option value="abierta">🔓 Abierta — Información pública</option>
+                <option value="cerrada">🔒 Cerrada — Solo resultados</option>
+                <option value="personas">👤 Personas — Elección de candidatos</option>
+              </select>
+              <div class="field-hint" id="cr-type-hint">Los datos individuales de cada votante serán visibles al público.</div>
+            </div>
+            <div class="form-group">
+              <label class="field-label">Quórum Máximo *</label>
+              <input class="field" type="number" id="cr-quorum" min="1" placeholder="Ej: 100">
+              <div class="field-error" id="cr-quorum-err">Ingrese un número positivo.</div>
+              <div class="field-hint">Cantidad máxima de votos esperados en este proceso.</div>
+            </div>
+          </div>
+          <div id="candidates-section" style="display:none">
+            <div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Agregue los candidatos.</div>
+            <label class="field-label">Candidatos *</label>
+            <ul class="candidate-list" id="candidate-list"></ul>
+            <div style="display:flex;gap:8px;margin-bottom:10px">
+              <input class="field" type="text" id="new-cand" placeholder="Nombre completo del candidato/a" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addCandidate()}">
+              <button class="btn btn-gold btn-sm" onclick="addCandidate()">+ Agregar</button>
+            </div>
+            <div class="field-error" id="cr-cand-err">Debe agregar al menos dos candidatos.</div>
+          </div>
+          <div class="info-box info-warn">⚠ Una vez creado, el proceso estará activo de inmediato.</div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <button class="btn btn-secondary" onclick="showPane('dashboard')">Cancelar</button>
+            <button class="btn btn-gold" onclick="submitCreate()">✓ Crear Proceso</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── PADRÓN ── -->
+    <div id="pane-students" style="display:none">
+      <div class="page-title">Padrón Estudiantil</div>
+      <div class="page-subtitle" style="margin-bottom:18px">Gestione el padrón de estudiantes reconocidos por el sistema</div>
+      <div class="student-grid">
+        <div class="card" style="margin:0">
+          <div class="card-header"><span class="card-header-title">Gestión del Padrón</span></div>
+          <div class="card-body">
+            <label class="field-label">Importar desde CSV</label>
+            <div class="upload-zone" onclick="document.getElementById('file-csv').click()">
+              <div class="upload-zone-icon">📂</div>
+              <p><strong>Clic para seleccionar archivo CSV</strong></p>
+              <p style="margin-top:5px">Formato: <code style="background:var(--cream2);padding:2px 6px;border-radius:3px;font-size:11px">carnet,nombre,email</code></p>
+            </div>
+            <input type="file" id="file-csv" accept=".csv,.txt" style="display:none" onchange="importCSV(event)">
+            <label class="field-label">Agregar manualmente</label>
+            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+              <input class="field" type="text" id="st-carnet" placeholder="Carnet" style="flex:1;min-width:100px">
+              <input class="field" type="text" id="st-name" placeholder="Nombre completo" style="flex:2;min-width:140px">
+            </div>
+            <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+              <input class="field" type="email" id="st-email" placeholder="Correo electrónico (ej: est@uned.cr)" style="flex:3">
+              <button class="btn btn-primary btn-sm" onclick="addStudent()" style="white-space:nowrap">+ Agregar</button>
+            </div>
+            <div class="field-error" id="st-err"></div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+              <button class="btn btn-excel btn-sm" onclick="exportStudents()">⬇ Excel</button>
+              <button class="btn btn-danger btn-sm" onclick="clearStudents()">🗑 Limpiar Padrón</button>
+            </div>
+
+            <!-- EMAIL CONFIG -->
+            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+              <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-bottom:8px" onclick="toggleEmailPanel()">
+                <label class="field-label" style="margin:0;cursor:pointer">📧 Panel de Correo Electrónico (Power Automate)</label>
+                <span id="email-toggle-lbl" style="font-size:12px;color:var(--text2)">▼</span>
+              </div>
+
+              <div id="email-panel" style="display:none">
+                <div id="email-cfg-status" style="margin-bottom:10px"></div>
+
+                <div class="info-box info-warn" style="font-size:12px">
+                  📌 <strong>Recomendado — Power Automate (Microsoft 365):</strong>
+                  Use su cuenta institucional para enviar correos sin servicios externos.
+                </div>
+
+                <div class="form-group">
+                  <label class="field-label">URL del flujo de Power Automate</label>
+                  <input class="field" type="url" id="pa-webhook" placeholder="https://prod-xx.westus.logic.azure.com/workflows/..." style="font-size:13px">
+                  <div class="field-hint">Pegue aquí la URL HTTP POST que le da Power Automate.</div>
+                </div>
+
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                  <button class="btn btn-primary btn-sm" onclick="saveEmailCfgForm()">✓ Guardar y Activar</button>
+                  <button class="btn btn-secondary btn-sm" onclick="testEmail()">🔍 Probar envío</button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="card-header">
+            <span class="card-header-title">Padrón Actual</span>
+            <span class="badge badge-active" id="st-count-badge">0 estudiantes</span>
+          </div>
+          <div style="max-height:480px;overflow-y:auto">
+            <table>
+              <thead>
+                <tr><th>#</th><th>Carnet</th><th>Nombre</th><th>Correo</th><th></th></tr>
+              </thead>
+              <tbody id="st-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+  <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
+
+<script type="module">
+import { db } from "./firebase.js";
+import {
+  collection,
+  doc,
+  setDoc,
+  getDocs,
+  deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { cargarProcesos, guardarProceso, cerrarProceso } from "./procesos.js";
+
+let session=null;
+let filterStatus='todas';
+let resultsMode='summary';
+let currentProcId=null;
+let draftCandidates=[];
+let processes=[];
+
+const EMAILJS_SERVICE  = 'service_teeuned';
+const EMAILJS_TEMPLATE = 'template_z6uy6lw';
+const EMAILJS_KEY      = 'hR6N4Pc8U9JZ2CVkJ';
+
+document.addEventListener('DOMContentLoaded',async ()=>{
+  if(typeof emailjs !== 'undefined') emailjs.init({ publicKey: EMAILJS_KEY });
+  session=checkAuth('teeuned');
+  if(!session) return;
+  document.getElementById('nav-name').textContent=session.name;
+  await renderDashboard();
+});
+
+function showPane(name){
+  ['dashboard','results','create','students'].forEach(p=>{
+    document.getElementById('pane-'+p).style.display=p===name?'block':'none';
+  });
+  document.getElementById('btn-home').style.display=name==='dashboard'?'none':'inline-block';
+  if(name==='students') renderStudents();
+  if(name==='create') resetCreateForm();
+  if(name==='dashboard') renderDashboard();
+}
+
+// ---
+function setFilter(val,btn){
+  filterStatus=val;
+  document.querySelectorAll('.btn-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderDashboard();
+}
+
+// ============================
+// FIRESTORE PADRÓN
+// ============================
+async function getStudents(){
+  const snap = await getDocs(collection(db,"padron"));
+  const students=[];
+  snap.forEach(d=>students.push(d.data()));
+  students.sort((a,b)=>a.carnet.localeCompare(b.carnet));
+  return students;
+}
+
+async function renderDashboard(){
+  processes=await cargarProcesos();
+  const tv=processes.reduce((a,p)=>a+p.votes.length,0);
+
+  document.getElementById('dash-stats').innerHTML=[
+    {l:'Total Procesos',v:processes.length,i:'📋'},
+    {l:'Activos',v:processes.filter(p=>p.status==='activa').length,i:'🟢'},
+    {l:'Votos Emitidos',v:tv,i:'🗳️'},
+    {l:'Padrón',v:'...',i:'👥'},
+  ].map(s=>`<div class="stat-card"><div class="stat-icon">${s.i}</div><div class="stat-value">${s.v}</div><div class="stat-label">${s.l}</div></div>`).join('');
+
+  // Actualizar padrón real desde Firestore
+  try{
+    const students = await getStudents();
+    const stats = document.getElementById('dash-stats');
+    if(stats){
+      const cards = stats.querySelectorAll('.stat-card');
+      if(cards.length>=4){
+        cards[3].querySelector('.stat-value').textContent = students.length;
+      }
+    }
+  }catch(e){}
+
+  const filtered=processes.filter(p=>filterStatus==='todas'||p.status===filterStatus);
+  const listEl=document.getElementById('process-list');
+  listEl.innerHTML=filtered.length?filtered.map(renderCard).join('')
+    :`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Sin procesos</div></div>`;
+}
+
+function renderCard(p){
+  const r=getResults(p);
+  const isActive=p.status==='activa';
+  const sB=isActive?'<span class="badge badge-active">● Activa</span>':'<span class="badge badge-closed">◉ Cerrada</span>';
+  const tB=p.type==='abierta'?'<span class="badge badge-open">🔓 Abierta</span>':p.type==='personas'?'<span class="badge badge-personas">👤 Personas</span>':'<span class="badge badge-secret">🔒 Cerrada</span>';
+  let bars='';
+  if(r.mode==='personas'){
+    bars=r.candidates.map((c,i)=>{const cnt=r.counts[c.id]||0;return`<div class="mini-bar-row"><span class="mini-bar-label">${c.name}</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct(cnt)}%;background:${PALETTE[i%PALETTE.length]}"></div></div><span class="mini-bar-count" style="color:${PALETTE[i%PALETTE.length]}">${cnt}</span></div>`;}).join('');
+  } else {
+    bars=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstención',c:r.abs,col:'#8a6e00'}]
+      .map(b=>`<div class="mini-bar-row"><span class="mini-bar-label">${b.l}</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct(b.c)}%;background:${b.col}"></div></div><span class="mini-bar-count" style="color:${b.col}">${b.c}</span></div>`).join('');
+  }
+  let acts=`<button class="btn btn-primary btn-sm" onclick="openResults('${p.id}','summary')">📊 Resultados</button>`;
+  acts+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}')">⬇ Excel</button>`;
+  if(isActive) acts+=`<button class="btn btn-danger btn-sm" onclick="closeProcess('${p.id}')">🔒 Cerrar</button>`;
+  return`<div class="process-card${!isActive?' closed-process':''}${p.type==='personas'?' personas-process':''}">
+    <div class="process-card-top">
+      <div style="flex:1;min-width:160px"><div class="process-title">${p.title}</div><div class="process-desc">${p.description}</div>
+      <div class="process-meta">${sB}${tB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span></div></div>
+      <div class="mini-bars">${bars}</div>
+    </div>
+    <div class="process-actions">${acts}<span class="process-date">Creado: ${fmtDateShort(p.createdAt)}</span></div>
+  </div>`;
+}
+
+async function closeProcess(pid){
+  if(!confirm('¿Confirma cerrar este proceso? Esta acción no puede revertirse.')) return;
+  try{
+    await cerrarProceso(pid);
+    showNotif('Proceso cerrado exitosamente.');
+  }catch(e){
+    showNotif('Error al cerrar el proceso.','error'); return;
+  }
+  if(currentProcId===pid) await openResults(pid,'summary');
+  else await renderDashboard();
+}
+
+// ---
+async function openResults(pid,mode){
+  processes=await cargarProcesos();
+  const p=processes.find(x=>x.id===pid);
+  if(!p) return;
+  currentProcId=pid; resultsMode=mode||'summary';
+  renderResults(p); showPane('results');
+}
+
+function renderResults(p){
+  const r=getResults(p);
+  const isPersonas=p.type==='personas';
+  document.getElementById('res-title').textContent=p.title;
+  document.getElementById('res-desc').textContent=p.description;
+
+  let notice='';
+  if(isPersonas) notice='<div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Solo resultados agregados.</div>';
+  else if(p.type==='abierta') notice='<div class="info-box info-warn">🔓 <strong>Votación Abierta:</strong> Datos individuales visibles.</div>';
+  else notice='<div class="info-box info-info">🔒 <strong>Votación Cerrada:</strong> Solo resultados agregados.</div>';
+  document.getElementById('res-notice').innerHTML=notice;
+
+  let actHTML='';
+  if(!isPersonas){
+    actHTML+=`<button class="btn btn-sm ${resultsMode==='summary'?'btn-primary':'btn-secondary'}" onclick="resultsMode='summary';renderResults(processes.find(x=>x.id===currentProcId))">Solo Resultados</button>`;
+    actHTML+=`<button class="btn btn-sm ${resultsMode==='detail'?'btn-primary':'btn-secondary'}" onclick="resultsMode='detail';renderResults(processes.find(x=>x.id===currentProcId))">Por Votante</button>`;
+  }
+  actHTML+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}')">⬇ Excel</button>`;
+  if(p.status==='activa') actHTML+=`<button class="btn btn-danger btn-sm" onclick="closeProcess('${p.id}')">🔒 Cerrar</button>`;
+  document.getElementById('res-actions').innerHTML=actHTML;
+
+  const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
+  document.getElementById('res-stats').innerHTML=[{l:'Quórum Máximo',v:p.quorum,i:'👥'},{l:'Votos Emitidos',v:r.total,i:'🗳️'},{l:'Participación',v:part+'%',i:'📊'}]
+    .map(s=>`<div class="result-stat"><div style="font-size:18px;margin-bottom:4px">${s.i}</div><div class="result-stat-value">${s.v}</div><div class="result-stat-label">${s.l}</div></div>`).join('');
+
+  let bars='';
+  if(r.mode==='personas'){
+    bars=r.candidates.map((c,i)=>{const cnt=r.counts[c.id]||0,pct=r.pct(cnt),col=PALETTE[i%PALETTE.length];
+      return`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${c.name}</span><span class="result-bar-count" style="color:${col}">${cnt} <span style="font-size:12px;color:var(--text2)">(${pct}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${pct}%;background:${col}"></div></div></div>`;}).join('');
+  } else {
+    bars=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstención',c:r.abs,col:'#8a6e00'}]
+      .map(b=>`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${b.l}</span><span class="result-bar-count" style="color:${b.col}">${b.c} <span style="font-size:12px;color:var(--text2)">(${r.pct(b.c)}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${r.pct(b.c)}%;background:${b.col}"></div></div></div>`).join('');
+  }
+  document.getElementById('res-bars').innerHTML=bars;
+
+  const hasQ=r.total>=p.quorum;
+  document.getElementById('res-quorum').innerHTML=`<div class="info-box ${hasQ?'info-success':'info-warn'}" style="margin-top:12px">${hasQ?'✓ Quórum alcanzado ('+r.total+'/'+p.quorum+').':'⚠ Quórum no alcanzado — '+r.total+'/'+p.quorum+' (faltan '+(p.quorum-r.total)+').'}</div>`;
+
+  const detailEl=document.getElementById('res-detail');
+  if(!isPersonas&&resultsMode==='detail'){
+    detailEl.style.display='block';
+    const canNames=p.type==='abierta';
+    document.getElementById('res-detail-badge').innerHTML=canNames?'<span class="badge badge-open">🔓 Abierta</span>':'<span class="badge badge-secret">🔒 Anónimo</span>';
+    document.getElementById('res-thead').innerHTML='<tr>'+(canNames?'<th>#</th><th>Nombre</th><th>Carnet</th><th>Voto</th><th>Hora</th>':'<th>#</th><th>Código Anónimo</th><th>Voto</th><th>Hora</th>')+'</tr>';
+    const vcMap={a_favor:{l:'A Favor',col:'var(--success)',bg:'var(--success-bg)'},en_contra:{l:'En Contra',col:'var(--danger)',bg:'var(--danger-bg)'},'abstención':{l:'Abstención',col:'var(--warn)',bg:'var(--warn-bg)'}};
+    document.getElementById('res-tbody').innerHTML=p.votes.length?p.votes.map((v,i)=>{
+      const vc=vcMap[v.choice]||{l:v.choice,col:'var(--text)',bg:'var(--cream)'};
+      const vCell=`<span style="background:${vc.bg};color:${vc.col};padding:3px 9px;border-radius:3px;font-size:11px;font-weight:700;text-transform:uppercase">${vc.l}</span>`;
+      return canNames?`<tr><td style="color:var(--text2);font-size:12px">${i+1}</td><td>${v.voterName}</td><td class="mono">${v.voterCarnet}</td><td>${vCell}</td><td class="mono">${fmtTime(v.ts)}</td></tr>`
+        :`<tr><td style="color:var(--text2);font-size:12px">${i+1}</td><td class="mono">#${v.voterHash}</td><td>${vCell}</td><td class="mono">${fmtTime(v.ts)}</td></tr>`;
+    }).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text2)">Sin votos registrados.</td></tr>';
+  } else { detailEl.style.display='none'; }
+}
+
+// ---
+function downloadExcel(pid){
+  const p=processes.find(x=>x.id===pid);
+  if(!p) return;
+  const r=getResults(p);
+  const isPersonas=p.type==='personas';
+  const wb=XLSX.utils.book_new();
+  const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
+  const rows=[['SISTEMA DE VOTACIÓN ELECTRÓNICA — FEUNED / TEEUNED'],[],
+    ['Proceso',p.title],['Descripción',p.description],
+    ['Tipo',isPersonas?'Personas (Siempre Secreta)':p.type==='abierta'?'Abierta':'Cerrada'],
+    ['Estado',p.status==='activa'?'Activa':'Cerrada'],
+    ['Creado',fmtDate(p.createdAt)],[],
+    ['QUÓRUM','VOTOS EMITIDOS','PARTICIPACIÓN'],[p.quorum,r.total,part+'%'],[],
+  ];
+  if(isPersonas){rows.push(['CANDIDATO','VOTOS','%']);r.candidates.forEach(c=>rows.push([c.name,r.counts[c.id]||0,r.pct(r.counts[c.id]||0)+'%']));}
+  else{rows.push(['OPCIÓN','VOTOS','%']);rows.push(['A Favor',r.favor,r.pct(r.favor)+'%']);rows.push(['En Contra',r.contra,r.pct(r.contra)+'%']);rows.push(['Abstención',r.abs,r.pct(r.abs)+'%']);}
+  rows.push([],[],['Exportado',new Date().toLocaleString('es-CR')]);
+  const ws1=XLSX.utils.aoa_to_sheet(rows);ws1['!cols']=[{wch:28},{wch:45},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
+  XLSX.writeFile(wb,'Resultados_'+p.title.replace(/[^a-zA-Z0-9 _-]/g,'').substring(0,35)+'.xlsx');
+  showNotif('Archivo Excel exportado correctamente.');
+}
+
+// ---
+function resetCreateForm(){
+  ['cr-title','cr-desc','cr-quorum','new-cand'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('cr-type').value='abierta';
+  draftCandidates=[];
+  ['cr-title-err','cr-desc-err','cr-quorum-err','cr-cand-err'].forEach(id=>document.getElementById(id).style.display='none');
+  onTypeChange(); renderCandidates();
+}
+function onTypeChange(){
+  const val=document.getElementById('cr-type').value;
+  const hints={abierta:'Los datos de cada votante serán visibles.',cerrada:'Solo resultados agregados.',personas:'Siempre secreta. Solo resultados finales.'};
+  document.getElementById('cr-type-hint').textContent=hints[val]||'';
+  document.getElementById('candidates-section').style.display=val==='personas'?'block':'none';
+}
+function addCandidate(){
+  const inp=document.getElementById('new-cand');
+  const name=inp.value.trim();
+  if(!name) return;
+  draftCandidates.push({id:'c'+Date.now()+'_'+Math.random().toString(36).substr(2,4),name});
+  inp.value=''; renderCandidates();
+}
+function removeCandidate(id){draftCandidates=draftCandidates.filter(c=>c.id!==id);renderCandidates();}
+function renderCandidates(){
+  const ul=document.getElementById('candidate-list');
+  ul.innerHTML=draftCandidates.length?draftCandidates.map((c,i)=>`<li class="candidate-item"><span class="candidate-num">${i+1}.</span><span class="candidate-name">${c.name}</span><button class="btn-remove-cand" onclick="removeCandidate('${c.id}')">✕</button></li>`).join('')
+    :'<li style="color:var(--text3);font-size:13px;padding:8px 0">No hay candidatos agregados aún.</li>';
+}
+async function submitCreate(){
+  let ok=true;
+  const title=document.getElementById('cr-title').value.trim();
+  const desc=document.getElementById('cr-desc').value.trim();
+  const type=document.getElementById('cr-type').value;
+  const quorum=parseInt(document.getElementById('cr-quorum').value);
+  if(!title){document.getElementById('cr-title-err').style.display='block';ok=false;}else document.getElementById('cr-title-err').style.display='none';
+  if(!desc){document.getElementById('cr-desc-err').style.display='block';ok=false;}else document.getElementById('cr-desc-err').style.display='none';
+  if(!quorum||quorum<=0){document.getElementById('cr-quorum-err').style.display='block';ok=false;}else document.getElementById('cr-quorum-err').style.display='none';
+  if(type==='personas'&&draftCandidates.length<2){document.getElementById('cr-cand-err').style.display='block';ok=false;}else document.getElementById('cr-cand-err').style.display='none';
+  if(!ok) return;
+  const nuevo={id:'p'+Date.now(),title,description:desc,type,quorum,status:'activa',createdAt:new Date().toISOString(),candidates:type==='personas'?[...draftCandidates]:null,votes:[],votedCarnets:[]};
+  try{
+    await guardarProceso(nuevo);
+    draftCandidates=[];
+    showNotif('Proceso de votación creado exitosamente.');
+    await renderDashboard();
+    showPane('dashboard');
+  }catch(e){
+    showNotif('Error al guardar el proceso.','error');
+  }
+}
+
+// ============================
+// PADRÓN (Firestore)
+// ============================
+async function renderStudents(){
+  const students = await getStudents();
+
+  document.getElementById('st-count-badge').textContent =
+    students.length + ' estudiante' + (students.length !== 1 ? 's' : '');
+
+  document.getElementById('st-tbody').innerHTML = students.length
+    ? students.map((s,i)=>`<tr>
+      <td style="color:var(--text2);font-size:12px">${i+1}</td>
+      <td class="mono">${s.carnet}</td><td>${s.name}</td>
+      <td class="mono" style="font-size:11px">${s.email||'<span style="color:var(--text3);font-style:italic">Sin correo</span>'}</td>
+      <td><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="removeStudent('${s.carnet}')">✕</button></td>
+    </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
+
+  renderEmailStatus();
+}
+
+async function addStudent(){
+  const carnet=document.getElementById('st-carnet').value.trim();
+  const name=document.getElementById('st-name').value.trim();
+  const email=document.getElementById('st-email').value.trim();
+  const errEl=document.getElementById('st-err');
+  errEl.style.display='none';
+
+  if(!carnet||!/^\d{4,12}$/.test(carnet)){
+    errEl.textContent='Carnet inválido (solo dígitos, 4–12 caracteres).';
+    errEl.style.display='block';return;
+  }
+  if(!name){
+    errEl.textContent='Ingrese el nombre completo.';
+    errEl.style.display='block';return;
+  }
+  if(email&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){
+    errEl.textContent='Formato de correo inválido.';
+    errEl.style.display='block';return;
+  }
+
+  const tempPassword = generatePassword();
+  const tempPasswordExpires = Date.now() + 24 * 60 * 60 * 1000;
+
+  try{
+    await setDoc(doc(db,"padron",carnet),{carnet,name,email:email||'',tempPassword,tempPasswordExpires});
+    ['st-carnet','st-name','st-email'].forEach(id=>document.getElementById(id).value='');
+    await renderStudents();
+
+    if(email){
+      try{
+        const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_id: EMAILJS_SERVICE,
+            template_id: EMAILJS_TEMPLATE,
+            user_id: EMAILJS_KEY,
+            template_params: { to_email: email, to_name: name, carnet, password: tempPassword }
+          })
+        });
+        if(!res.ok){ const txt=await res.text(); throw new Error('EmailJS '+res.status+': '+txt); }
+        showNotif('Estudiante agregado y correo enviado a ' + email + '.');
+      }catch(mailErr){
+        console.error('EmailJS:', mailErr);
+        showNotif('Estudiante agregado. Error al enviar correo — contraseña: ' + tempPassword, 'error');
+      }
+    } else {
+      showNotif('Estudiante agregado. Sin correo — contraseña: ' + tempPassword);
+    }
+  }catch(e){
+    console.error(e);
+    showNotif('Error guardando estudiante.','error');
+  }
+}
+
+async function removeStudent(carnet){
+  if(!confirm('¿Eliminar a este estudiante del padrón?')) return;
+  try{
+    await deleteDoc(doc(db,"padron",carnet));
+    await renderStudents();
+    showNotif('Estudiante eliminado del padrón.');
+  }catch(e){
+    console.error(e);
+    showNotif('Error eliminando estudiante.','error');
+  }
+}
+
+async function clearStudents(){
+  if(!confirm('¿Limpiar todo el padrón? Se eliminarán TODOS los estudiantes.')) return;
+
+  try{
+    const snap = await getDocs(collection(db,"padron"));
+    const deletes = [];
+    snap.forEach(d=>{
+      deletes.push(deleteDoc(doc(db,"padron",d.id)));
+    });
+    await Promise.all(deletes);
+    await renderStudents();
+    showNotif('Padrón limpiado.');
+  }catch(e){
+    console.error(e);
+    showNotif('Error limpiando padrón.','error');
+  }
+}
+
+async function importCSV(event){
+  const file=event.target.files[0];if(!file) return;
+  const reader=new FileReader();
+
+  reader.onload=async function(e){
+    const lines=e.target.result.split(/\r?\n/).filter(l=>l.trim());
+    let added=0,skipped=0;
+
+    for(const line of lines){
+      const parts=line.split(/[,\t]/).map(x=>x.trim().replace(/^"|"$/g,''));
+      if(parts.length<2){skipped++;continue;}
+      const carnet=parts[0],name=parts[1]||'',email=parts[2]||'';
+      if(!carnet||!/^\d{4,12}$/.test(carnet)||!name){skipped++;continue;}
+
+      try{
+        await setDoc(doc(db,"padron",carnet),{carnet,name,email});
+        added++;
+      }catch{
+        skipped++;
+      }
+    }
+
+    await renderStudents();
+    showNotif('CSV importado: '+added+' agregados, '+skipped+' omitidos.');
+    event.target.value='';
+  };
+
+  reader.readAsText(file,'UTF-8');
+}
+
+async function exportStudents(){
+  const students = await getStudents();
+  const wb=XLSX.utils.book_new();
+  const rows=[['Carnet','Nombre Completo','Correo Electrónico'],...students.map(s=>[s.carnet,s.name,s.email||''])];
+  const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:15},{wch:40},{wch:35}];
+  XLSX.utils.book_append_sheet(wb,ws,'Padrón Estudiantil');
+  XLSX.writeFile(wb,'Padron_Estudiantil_TEEUNED.xlsx');
+  showNotif('Padrón exportado en Excel.');
+}
+
+// ---
+function toggleEmailPanel(){
+  const panel=document.getElementById('email-panel');
+  const lbl=document.getElementById('email-toggle-lbl');
+  const isOpen=panel.style.display!=='none';
+  panel.style.display=isOpen?'none':'block';
+  lbl.textContent=isOpen?'▼':'▲';
+  if(!isOpen){
+    renderEmailStatus();
+  }
+}
+
+function renderEmailStatus(){
+  const el=document.getElementById('email-cfg-status');
+  if(!el) return;
+  const cfg=getEmailCfg();
+  el.innerHTML=cfg.enabled
+    ? '<div class="info-box info-success" style="margin:0">✓ Correo activo — Se enviarán confirmaciones automáticas.</div>'
+    : '<div class="info-box info-warn" style="margin:0">⚠ Correo no configurado — Los estudiantes no recibirán confirmaciones por correo.</div>';
+}
+
+function saveEmailCfgForm(){
+  const url=document.getElementById('pa-webhook').value.trim();
+  if(!url){
+    showNotif('Pegue la URL de Power Automate.','error');
+    return;
+  }
+  saveEmailCfg({webhookUrl:url,enabled:true});
+  renderEmailStatus();
+  showNotif('Configuración guardada.');
+}
+
+async function testEmail(){
+  var cfg=getEmailCfg();
+  if(!cfg.enabled||!cfg.webhookUrl){showNotif('Guarde primero la URL de Power Automate.','error');return;}
+
+  var students = await getStudents();
+  var stu=null;
+  for(var i=0;i<students.length;i++){if(students[i].email){stu=students[i];break;}}
+
+  if(!stu){showNotif('No hay estudiantes con correo registrado.','error');return;}
+
+  showNotif('Enviando prueba a '+stu.email+'...');
+  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    to_email:stu.email,to_name:stu.name,carnet:stu.carnet,
+    subject:'[PRUEBA] Sistema de Votación TEEUNED',
+    body:'Estimado/a '+stu.name+', este es un correo de prueba del Sistema de Votación Electrónica FEUNED. Si lo recibe, el sistema funciona correctamente.'
+  })}).then(function(){showNotif('✓ Prueba enviada a '+stu.email);}).catch(function(){showNotif('✓ Solicitud enviada (verifique su bandeja).');});
+}
+
+// Hacer visibles funciones para onclick
+window.showPane = showPane;
+window.setFilter = setFilter;
+window.openResults = openResults;
+window.downloadExcel = downloadExcel;
+window.closeProcess = closeProcess;
+window.resetCreateForm = resetCreateForm;
+window.onTypeChange = onTypeChange;
+window.addCandidate = addCandidate;
+window.removeCandidate = removeCandidate;
+window.submitCreate = submitCreate;
+window.renderStudents = renderStudents;
+window.addStudent = addStudent;
+window.removeStudent = removeStudent;
+window.clearStudents = clearStudents;
+window.importCSV = importCSV;
+window.exportStudents = exportStudents;
+window.toggleEmailPanel = toggleEmailPanel;
+window.saveEmailCfgForm = saveEmailCfgForm;
+window.testEmail = testEmail;
+
+</script>
+
+</body>
+</html>

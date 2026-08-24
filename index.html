@@ -375,34 +375,10 @@ function backToPortals(){
   document.getElementById('btn-back').style.display='none';
 }
 function showError(msg){var e=document.getElementById('login-error');e.textContent='⚠ '+msg;e.style.display='block';}
-function doLogin(){
-  document.getElementById('login-error').style.display='none';
-  var id=document.getElementById('login-id').value.trim();
-  var pass=document.getElementById('login-pass').value;
-  if(!id) return showError('Ingrese su identificador.');
-  if(!pass) return showError('Ingrese su contrasena.');
-  if(!activePortal) return showError('Seleccione un portal de acceso.');
-  if(activePortal==='student'){
-    var students=getStudents(), found=null;
-    for(var i=0;i<students.length;i++){if(students[i].carnet===id){found=students[i];break;}}
-    if(!found) return showError('Carnet no encontrado. Solo estudiantes matriculados en la UNED pueden acceder.');
-    if(!validateStudentPassword(id,pass)) return showError('Contrasena incorrecta.');
-    saveSession({role:'student',carnet:found.carnet,name:found.name,email:found.email||''});
-    window.location.href='estudiante.html';
-  } else if(activePortal==='teeuned'){
-    var oTee=null;
-    for(var j=0;j<OFFICIALS.length;j++){if(OFFICIALS[j].id===id&&OFFICIALS[j].role==='teeuned'&&OFFICIALS[j].pass===pass){oTee=OFFICIALS[j];break;}}
-    if(!oTee) return showError('Credenciales incorrectas.');
-    saveSession({role:'teeuned',id:oTee.id,name:oTee.name});
-    window.location.href='teeuned.html';
-  } else if(activePortal==='fiscalia'){
-    var oFis=null;
-    for(var k=0;k<OFFICIALS.length;k++){if(OFFICIALS[k].id===id&&OFFICIALS[k].role==='fiscalia'&&OFFICIALS[k].pass===pass){oFis=OFFICIALS[k];break;}}
-    if(!oFis) return showError('Credenciales incorrectas.');
-    saveSession({role:'fiscalia',id:oFis.id,name:oFis.name});
-    window.location.href='fiscalia.html';
-  }
-}
+// doLogin() (comparación de contraseñas en texto plano contra OFFICIALS /
+// getStudents()) — ELIMINADO. El inicio de sesión real ahora se hace con
+// Firebase Authentication en doLoginFirestore(), ver el <script type="module">
+// al final de este archivo.
 function showForgot(){
   document.getElementById('login-section').classList.remove('visible');
   document.getElementById('forgot-section').classList.add('visible');
@@ -414,37 +390,46 @@ function hideForgot(){
   document.getElementById('forgot-section').classList.remove('visible');
   if(activePortal) document.getElementById('login-section').classList.add('visible');
 }
-function doForgotPassword(){
-  var carnet=document.getElementById('forgot-carnet').value.trim();
-  var sEl=document.getElementById('forgot-status');
-  sEl.innerHTML='';
-  if(!carnet){sEl.innerHTML='<span style="color:#7a1515;font-size:13px">Ingrese su numero de carnet.</span>';return;}
-  var students=getStudents(),stu=null;
-  for(var i=0;i<students.length;i++){if(students[i].carnet===carnet){stu=students[i];break;}}
-  if(!stu){sEl.innerHTML='<span style="color:#7a1515;font-size:13px">Carnet no encontrado en el padron.</span>';return;}
-  if(!stu.email){sEl.innerHTML='<span style="color:#7a1515;font-size:13px">No hay correo registrado. Contacte al TEEUNED.</span>';return;}
-  var np=generatePassword();
-  setStudentPassword(carnet,np);
-  var sent=sendPasswordReset(stu,np,'forgot-status');
-  if(!sent) sEl.innerHTML='<div class="info-box info-warn" style="margin:0">Correo no configurado. Contrasena temporal: <strong>'+np+'</strong></div>';
-}
+// doForgotPassword() (generaba contraseña nueva y la mostraba/enviaba en
+// texto plano) — ELIMINADO. El flujo real ahora usa sendPasswordResetEmail()
+// nativo de Firebase Auth, ver doForgotPassword() en el <script type="module">
+// al final de este archivo.
 document.getElementById('card-student').onclick=function(){selectPortal('student');};
 document.getElementById('card-teeuned').onclick=function(){selectPortal('teeuned');};
 document.getElementById('card-fiscalia').onclick=function(){selectPortal('fiscalia');};
-document.getElementById('btn-login-main').onclick=doLogin;
 document.getElementById('btn-back').onclick=backToPortals;
 document.getElementById('btn-forgot').onclick=showForgot;
 document.getElementById('btn-forgot-back').onclick=hideForgot;
-document.getElementById('btn-forgot-send').onclick=doForgotPassword;
-document.getElementById('login-id').onkeydown=function(e){if(e.key==='Enter')doLogin();};
-document.getElementById('forgot-carnet').onkeydown=function(e){if(e.key==='Enter')doForgotPassword();};
 (function(){var s=getSession();if(s&&s.role){var d={student:'estudiante.html',teeuned:'teeuned.html',fiscalia:'fiscalia.html'};if(d[s.role])window.location.href=d[s.role];}})();
 </script>
 
-<!-- Login de estudiantes con Firestore -->
+<!-- Login real con Firebase Authentication -->
 <script type="module">
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+// Mapea códigos de error de Firebase Auth a los mensajes en español ya
+// usados por la UI.
+function authErrorMessage(e) {
+  var code = e && e.code;
+  if (code === 'auth/wrong-password' || code === 'auth/invalid-credential' || code === 'auth/invalid-login-credentials') {
+    return 'Contraseña incorrecta.';
+  }
+  if (code === 'auth/user-not-found') {
+    return 'Credenciales incorrectas.';
+  }
+  if (code === 'auth/too-many-requests') {
+    return 'Demasiados intentos fallidos. Intente de nuevo más tarde.';
+  }
+  if (code === 'auth/invalid-email') {
+    return 'Correo institucional inválido.';
+  }
+  return 'Error de conexión. Intente de nuevo.';
+}
 
 async function doLoginFirestore() {
   var errEl = document.getElementById('login-error');
@@ -465,37 +450,69 @@ async function doLoginFirestore() {
         errEl.style.display='block'; return;
       }
       var student = snap.data();
-      if (student.tempPassword && student.tempPassword === pass) {
-        if (Date.now() > student.tempPasswordExpires) {
-          errEl.textContent = '⚠ Su contraseña temporal ha expirado. Contacte al TEEUNED para obtener una nueva.';
-          errEl.style.display='block'; return;
-        }
-      } else if (!validateStudentPassword(id, pass)) {
-        errEl.textContent = '⚠ Contraseña incorrecta.'; errEl.style.display='block'; return;
+      if (!student.email) {
+        errEl.textContent = '⚠ Este carnet no tiene correo registrado. Contacte al TEEUNED.';
+        errEl.style.display='block'; return;
+      }
+      try {
+        await signInWithEmailAndPassword(auth, student.email, pass);
+      } catch (authErr) {
+        errEl.textContent = '⚠ ' + authErrorMessage(authErr);
+        errEl.style.display='block'; return;
       }
       saveSession({ role:'student', carnet:student.carnet, name:student.name, email:student.email||'' });
       window.location.href = 'estudiante.html';
     } catch(e) {
       errEl.textContent = '⚠ Error de conexion. Intente de nuevo.'; errEl.style.display='block';
     }
-  } else if (portal === 'teeuned') {
-    var OFFICIALS = [{id:'teeuned01',name:'TEEUNED',role:'teeuned',pass:'teeuned2024'}];
-    var found = OFFICIALS.find(function(o){ return o.id===id && o.role==='teeuned' && o.pass===pass; });
-    if (!found) { errEl.textContent = '⚠ Credenciales incorrectas.'; errEl.style.display='block'; return; }
-    saveSession({ role:'teeuned', id:found.id, name:found.name });
-    window.location.href = 'teeuned.html';
-  } else if (portal === 'fiscalia') {
-    var OFFICIALS2 = [{id:'fiscalia01',name:'Fiscal FEUNED',role:'fiscalia',pass:'fiscalia2024'}];
-    var found2 = OFFICIALS2.find(function(o){ return o.id===id && o.role==='fiscalia' && o.pass===pass; });
-    if (!found2) { errEl.textContent = '⚠ Credenciales incorrectas.'; errEl.style.display='block'; return; }
-    saveSession({ role:'fiscalia', id:found2.id, name:found2.name });
-    window.location.href = 'fiscalia.html';
+  } else if (portal === 'teeuned' || portal === 'fiscalia') {
+    var staffEmail = portal === 'teeuned' ? 'elecciones.teeuned@gmail.com' : 'fiscaliafeuned@uned.ac.cr';
+    errEl.textContent = 'Verificando...'; errEl.style.display='block';
+    try {
+      var cred = await signInWithEmailAndPassword(auth, staffEmail, pass);
+      var displayName = portal === 'teeuned' ? 'TEEUNED' : 'Fiscal FEUNED';
+      saveSession({ role: portal, id: portal === 'teeuned' ? 'teeuned01' : 'fiscalia01', name: displayName, authUid: cred.user.uid });
+      window.location.href = portal === 'teeuned' ? 'teeuned.html' : 'fiscalia.html';
+    } catch (authErr) {
+      errEl.textContent = '⚠ ' + authErrorMessage(authErr);
+      errEl.style.display='block';
+    }
+  }
+}
+
+async function doForgotPassword() {
+  var carnet = document.getElementById('forgot-carnet').value.trim();
+  var sEl = document.getElementById('forgot-status');
+  sEl.innerHTML = '';
+  var genericMsg = '<div class="info-box info-success" style="margin:0">Si el carnet existe, se envió un correo con instrucciones para restablecer la contraseña a la dirección registrada.</div>';
+  if (!carnet) { sEl.innerHTML = '<span style="color:#7a1515;font-size:13px">Ingrese su numero de carnet.</span>'; return; }
+  try {
+    var snap = await getDoc(doc(db, "padron", carnet));
+    // Nota: se mantiene el "carnet no encontrado" explícito (en vez del
+    // mensaje genérico) para que el estudiante sepa qué corregir; el riesgo
+    // de enumeración de carnets (números correlativos, no secretos) se
+    // considera bajo para este sistema.
+    if (!snap.exists()) {
+      sEl.innerHTML = '<span style="color:#7a1515;font-size:13px">Carnet no encontrado en el padron.</span>';
+      return;
+    }
+    var stu = snap.data();
+    if (!stu.email) {
+      sEl.innerHTML = '<span style="color:#7a1515;font-size:13px">No hay correo registrado. Contacte al TEEUNED.</span>';
+      return;
+    }
+    await sendPasswordResetEmail(auth, stu.email);
+    sEl.innerHTML = genericMsg;
+  } catch (e) {
+    sEl.innerHTML = '<span style="color:#7a1515;font-size:13px">Error al procesar la solicitud. Intente de nuevo.</span>';
   }
 }
 
 document.getElementById('btn-login-main').onclick = doLoginFirestore;
 document.getElementById('login-id').onkeydown = function(e){ if(e.key==='Enter') doLoginFirestore(); };
 document.getElementById('login-pass').onkeydown = function(e){ if(e.key==='Enter') doLoginFirestore(); };
+document.getElementById('btn-forgot-send').onclick = doForgotPassword;
+document.getElementById('forgot-carnet').onkeydown = function(e){ if(e.key==='Enter') doForgotPassword(); };
 </script>
 </body>
 </html>

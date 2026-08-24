@@ -282,7 +282,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
 <!-- Script 1 (UTILS, STORAGE, EMAIL, NOTIF) -->
 <script type="module">
 
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
 
 import {
   collection,
@@ -293,10 +293,7 @@ import {
 
 const PALETTE=['#2e5fa3','#7a1f6e','#1a6b3c','#8b1a1a','#8a6e00','#1a5c6b','#5a2e8b','#6b3a1a'];
 
-const OFFICIALS=[
-  {id:'teeuned01',name:'TEEUNED',role:'teeuned',pass:'teeuned2024'},
-  {id:'fiscalia01',name:'Fiscal FEUNED',role:'fiscalia',pass:'fiscalia2024'},
-];
+// OFFICIALS (cuentas de personal con contraseña en texto plano) — ELIMINADO.
 
 function _mkProc(){
   return[
@@ -357,8 +354,6 @@ function saveSession(u){localStorage.setItem('tee_session',JSON.stringify(u));}
 function clearSession(){localStorage.removeItem('tee_session');}
 function getEmailCfg(){try{return JSON.parse(localStorage.getItem('tee_emailcfg')||'{}');}catch(e){return{};}}
 function saveEmailCfg(c){localStorage.setItem('tee_emailcfg',JSON.stringify(c));}
-function getPasswords(){try{return JSON.parse(localStorage.getItem('tee_passwords')||'{}');}catch(e){return{};}}
-function savePasswords(p){localStorage.setItem('tee_passwords',JSON.stringify(p));}
 
 // AUTH
 function checkAuth(requiredRole){
@@ -371,18 +366,20 @@ function checkAuth(requiredRole){
   }
   return session;
 }
+// doLogout() de respaldo (sin cerrar la sesión real de Firebase Auth) — se
+// sobrescribe en el segundo <script type="module"> (Script 2 / APP) con una
+// versión que también llama signOut(auth).
 function doLogout(){clearSession();window.location.href='index.html';}
 
-// PASSWORDS
-function validateStudentPassword(carnet,pass){var p=getPasswords();return p[carnet]?p[carnet]===pass:pass==='1234';}
-function setStudentPassword(carnet,pass){var p=getPasswords();p[carnet]=pass;savePasswords(p);}
-function generatePassword(){var c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789',p='F-';for(var i=0;i<6;i++)p+=c[Math.floor(Math.random()*c.length)];return p;}
+// validateStudentPassword/setStudentPassword/generatePassword (esquema de
+// contraseñas en texto plano en localStorage) — ELIMINADOS. El login real
+// ahora usa Firebase Authentication (ver index.html).
 
 // UTILS
 function hash8(s){var h=5381;for(var i=0;i<s.length;i++)h=Math.imul((h<<5)+h,1)^s.charCodeAt(i);return(Math.abs(h)>>>0).toString(16).toUpperCase().padStart(8,'0');}
-function fmtDate(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});}
-function fmtTime(iso){return new Date(iso).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
-function fmtDateShort(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
+function fmtDate(iso){var d=new Date(iso);return isNaN(d)?'Fecha no disponible':d.toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'});}
+function fmtTime(iso){var d=new Date(iso);return isNaN(d)?'—':d.toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+function fmtDateShort(iso){var d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
 function getResults(p){
   if(p.type==='personas'&&p.candidates){
     var counts={};p.candidates.forEach(function(c){counts[c.id]=0;});
@@ -454,6 +451,7 @@ function showNotif(msg,type){
 
 window.checkAuth = checkAuth;
 window.doLogout = doLogout;
+window.auth = auth;
 window.getProcesses = getProcesses;
 window.saveProcesses = saveProcesses;
 window.getResults = getResults;
@@ -472,31 +470,52 @@ window.saveSession = saveSession;
 <script type="module">
 
 import { cargarProcesos, registrarVoto } from "./procesos.js";
+import { auth } from "./firebase.js";
+import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 var session=null;
+var currentStudent=null;
 var filterStatus='todas';
 var selectedVote=null;
 var currentProcId=null;
 var processes=[];
 
-document.addEventListener('DOMContentLoaded',async function(){
+document.addEventListener('DOMContentLoaded',function(){
   session = checkAuth('student');
   if(!session) return;
 
-  const student = await getStudentByCarnet(session.carnet);
-  if(!student){
-    alert("⚠️ Su carnet no está registrado en el padrón. Contacte al TEEUNED.");
-    doLogout();
-    return;
-  }
+  // Además del guard por rol en localStorage (checkAuth, arriba), se exige
+  // una sesión real de Firebase Auth antes de permitir cualquier escritura
+  // (emisión de voto). Si la caché local existe pero la sesión real de
+  // Firebase expiró/fue borrada, se redirige al login.
+  onAuthStateChanged(auth, async function(user){
+    if(!user){ window.location.href='index.html'; return; }
 
-  document.getElementById('nav-name').textContent = student.name + ' (' + student.carnet + ')';
-  session.name = student.name;
-  saveSession(session);
+    const student = await getStudentByCarnet(session.carnet);
+    if(!student){
+      alert("⚠️ Su carnet no está registrado en el padrón. Contacte al TEEUNED.");
+      doLogout();
+      return;
+    }
+    currentStudent = student;
 
-  processes = await cargarProcesos();
-  renderDashboard();
+    document.getElementById('nav-name').textContent = student.name + ' (' + student.carnet + ')';
+    session.name = student.name;
+    saveSession(session);
+
+    processes = await cargarProcesos();
+    renderDashboard();
+  });
 });
+
+// doLogout real: cierra también la sesión de Firebase Auth, no solo la
+// caché en localStorage.
+async function doLogoutSecure(){
+  try{ await signOut(auth); }catch(e){}
+  clearSession();
+  window.location.href='index.html';
+}
+window.doLogout = doLogoutSecure;
 
 function showPane(name){
   ['dashboard','vote','results'].forEach(function(p){
@@ -546,7 +565,7 @@ function renderCard(p){
   var acts='';
   if(isActive&&!hasVoted)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\')">&#128499; Votar</button>';
   acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\',\'summary\')">&#128202; Ver Resultados</button>';
-  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+p.title+'</div><div class="process-desc">'+p.description+'</div><div class="process-meta">'+sB+tB+'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>'+vB+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
+  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'Sin descripción disponible.')+'</div><div class="process-meta">'+sB+tB+'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>'+vB+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
 }
 
 function openVote(pid){
@@ -610,9 +629,22 @@ function setVoteStep(step){
 
 async function submitVote(){
   if(!selectedVote||!currentProcId)return;
+  if(!auth.currentUser){
+    showNotif('Su sesión expiró. Inicie sesión de nuevo.','error');
+    doLogoutSecure();
+    return;
+  }
   var p=null;
   for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
-  var nv={id:'v'+Date.now(),voterCarnet:session.carnet,voterName:session.name,voterHash:hash8(session.carnet),choice:selectedVote,ts:new Date().toISOString()};
+  // Se usa el objeto "student" ya verificado contra Firestore (currentStudent,
+  // obtenido en DOMContentLoaded vía getStudentByCarnet) en vez de leer
+  // carnet/nombre directamente de la caché en localStorage (editable por el
+  // cliente). La protección real contra votos falsificados es la regla de
+  // Firestore (padron/{carnet}.authUid == request.auth.uid); esto es una
+  // limpieza de robustez adicional.
+  var voterCarnet = currentStudent ? currentStudent.carnet : session.carnet;
+  var voterName = currentStudent ? currentStudent.name : session.name;
+  var nv={id:'v'+Date.now(),voterCarnet:voterCarnet,voterName:voterName,voterHash:hash8(voterCarnet),choice:selectedVote,ts:new Date().toISOString()};
 
   try{
     await registrarVoto(currentProcId, nv);
@@ -627,7 +659,7 @@ async function submitVote(){
 
   // Actualizar cache local
   p.votes.push(nv);
-  p.votedCarnets.push(session.carnet);
+  p.votedCarnets.push(voterCarnet);
 
   var label=selectedVote;
   if(p.type==='personas'){
@@ -651,8 +683,8 @@ function openResults(pid){
   for(var i=0;i<processes.length;i++){if(processes[i].id===pid){p=processes[i];break;}}
   if(!p)return;
   currentProcId=pid;
-  document.getElementById('res-title').textContent=p.title;
-  document.getElementById('res-desc').textContent=p.description;
+  document.getElementById('res-title').textContent=p.title||'Proceso sin título';
+  document.getElementById('res-desc').textContent=p.description||'Sin descripción disponible.';
   var r=getResults(p);
   var isPersonas=p.type==='personas';
   var notice='';

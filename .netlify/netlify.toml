@@ -9,7 +9,6 @@ redirects = []
 [build]
 publish = "C:\\Users\\profe\\OneDrive\\Escritorio\\teeuned-votacion-main\\teeuned-votacion-main"
 publishOrigin = "default"
-base = "C:\\Users\\profe\\OneDrive\\Escritorio\\teeuned-votacion-main\\teeuned-votacion-main"
 
 [build.environment]
 

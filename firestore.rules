@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// TEEUNED — Reglas de seguridad de Firestore
+//
+// UID de las dos cuentas de personal (TEEUNED y Fiscalía), creadas en
+// Firebase Console > Authentication > Users. Se referencian directo aquí
+// en vez de necesitar un backend con Admin SDK para roles dinámicos.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isTeeuned() {
+      return request.auth != null && request.auth.uid == 'BoQ0s3unG2ZCd5k4nvWQnrzvvVB3';
+    }
+    function isFiscalia() {
+      return request.auth != null && request.auth.uid == 'P2rcIbSk9sS3qWIOmtSSKfStAku1';
+    }
+    function isStaff() {
+      return isTeeuned() || isFiscalia();
+    }
+
+    // Padrón: lectura pública (necesaria para resolver carnet -> correo
+    // de autenticación ANTES de iniciar sesión). Solo nombre/carnet/correo
+    // institucional, nada sensible. Escritura solo TEEUNED.
+    match /padron/{carnet} {
+      allow read: if true;
+      allow write: if isTeeuned();
+    }
+
+    // Procesos de votación: resultados agregados visibles para todos los
+    // autenticados (estudiantes, TEEUNED, Fiscalía). Crear/cerrar solo TEEUNED.
+    match /procesos/{procesoId} {
+      allow read: if request.auth != null;
+      allow create, update: if isTeeuned();
+      allow delete: if false;
+
+      // Votos individuales: el ID del documento es el carnet del votante.
+      // Solo se puede crear (nunca editar/borrar = inmutable) y SOLO si:
+      //   1) hay sesión autenticada,
+      //   2) el UID autenticado coincide con el authUid guardado en el
+      //      padrón para ESE carnet (evita votar en nombre de otro),
+      //   3) el carnet del voto coincide con el ID del documento,
+      //   4) no existe ya un voto de ese carnet en este proceso (anti doble voto).
+      match /votos/{carnet} {
+        allow read: if isStaff() || request.auth.uid == get(/databases/$(database)/documents/padron/$(carnet)).data.authUid;
+        allow create: if request.auth != null
+          && get(/databases/$(database)/documents/padron/$(carnet)).data.authUid == request.auth.uid
+          && request.resource.data.voterCarnet == carnet
+          && !exists(/databases/$(database)/documents/procesos/$(procesoId)/votos/$(carnet));
+        allow update, delete: if false;
+      }
+    }
+  }
+}

@@ -10,10 +10,10 @@ const DEFAULT_STUDENTS=[
   {carnet:'303456789',name:'Luis Hernández Mora',email:'lhernandez@est.uned.cr'},
   {carnet:'304567890',name:'Sofía Castro López',email:'scastro@est.uned.cr'},
 ];
-const OFFICIALS=[
-  {id:'teeuned01',name:'TEEUNED',role:'teeuned',pass:'teeuned2024'},
-  {id:'fiscalia01',name:'Fiscal FEUNED',role:'fiscalia',pass:'fiscalia2024'},
-];
+// OFFICIALS (cuentas de personal con contraseña en texto plano) — ELIMINADO.
+// El personal (TEEUNED/Fiscalía) ahora se autentica con Firebase Authentication
+// (correo real por cuenta, configurado en index.html),
+// ver firebase.js (export const auth) y el script módulo en index.html.
 
 function _mkProc(){
   const h=hash8;
@@ -66,9 +66,6 @@ function saveSession(u){localStorage.setItem('tee_session',JSON.stringify(u));}
 function clearSession(){localStorage.removeItem('tee_session');}
 function getEmailCfg(){return JSON.parse(localStorage.getItem('tee_emailcfg')||'{}');}
 function saveEmailCfg(c){localStorage.setItem('tee_emailcfg',JSON.stringify(c));}
-function getPasswords(){return JSON.parse(localStorage.getItem('tee_passwords')||'{}');}
-function savePasswords(p){localStorage.setItem('tee_passwords',JSON.stringify(p));}
-
 // ── AUTENTICACIÓN ─────────────────────────────────────────────────
 function checkAuth(requiredRole){
   const session=getSession();
@@ -81,11 +78,6 @@ function checkAuth(requiredRole){
   return session;
 }
 function doLogout(){clearSession();window.location.href='index.html';}
-
-// ── CONTRASEÑAS ───────────────────────────────────────────────────
-function validateStudentPassword(carnet,pass){const p=getPasswords();return p[carnet]?p[carnet]===pass:pass==='1234';}
-function setStudentPassword(carnet,pass){const p=getPasswords();p[carnet]=pass;savePasswords(p);}
-function generatePassword(){const c='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let p='F-';for(let i=0;i<6;i++)p+=c[Math.floor(Math.random()*c.length)];return p;}
 
 // ── UTILIDADES ────────────────────────────────────────────────────
 function hash8(s){let h=5381;for(let i=0;i<s.length;i++)h=Math.imul((h<<5)+h,1)^s.charCodeAt(i);return(Math.abs(h)>>>0).toString(16).toUpperCase().padStart(8,'0');}
@@ -126,22 +118,10 @@ function sendVoteConfirmation(vote,process,statusElId){
   }).then(()=>{if(el)el.innerHTML='<span style="color:var(--success-col,#155c34);font-size:12px">✓ Correo de confirmación enviado a '+email+'</span>';})
   .catch(err=>{if(el)el.innerHTML='<span style="color:var(--danger-col,#7a1515);font-size:12px">✗ Error al enviar: '+((err&&err.text)||'verifique EmailJS')+'</span>';});
 }
-function sendPasswordReset(student,newPass,statusElId){
-  const el=statusElId?document.getElementById(statusElId):null;
-  const cfg=getEmailCfg();
-  if(!cfg.enabled||!cfg.publicKey||!cfg.serviceId||!cfg.templateIdReset){
-    if(el)el.innerHTML='<span style="color:var(--danger-col,#7a1515);font-size:13px">⚠ Sistema de correo no configurado. Contacte al TEEUNED.</span>';return false;
-  }
-  if(!student.email){if(el)el.innerHTML='<span style="color:var(--danger-col,#7a1515);font-size:13px">⚠ No hay correo registrado para este carnet. Contacte al TEEUNED.</span>';return false;}
-  if(el)el.innerHTML='<span style="color:var(--info-col,#0d3d70);font-size:13px">📧 Enviando nueva contraseña a '+student.email+'...</span>';
-  emailjs.send(cfg.serviceId,cfg.templateIdReset,{
-    to_email:student.email,to_name:student.name,carnet:student.carnet,new_password:newPass,
-    from_name:'Fiscalía FEUNED — TEEUNED',reply_to:'fiscaliafeuned@uned.ac.cr',
-    system_name:'Sistema de Votación Electrónica FEUNED',
-  }).then(()=>{if(el)el.innerHTML='<span style="color:var(--success-col,#155c34);font-size:13px">✓ Nueva contraseña enviada a <strong>'+student.email+'</strong>. Revise su correo.</span>';})
-  .catch(err=>{if(el)el.innerHTML='<span style="color:var(--danger-col,#7a1515);font-size:13px">✗ Error al enviar. Contacte al TEEUNED.</span>';});
-  return true;
-}
+// sendPasswordReset (envío de contraseña en texto plano por correo) — ELIMINADO.
+// El restablecimiento de contraseña ahora usa sendPasswordResetEmail() nativo
+// de Firebase Auth (ver doForgotPassword() en index.html) — nunca se muestra
+// ni se envía una contraseña en texto plano.
 
 // ── NOTIFICACIONES ────────────────────────────────────────────────
 let _nt=null;

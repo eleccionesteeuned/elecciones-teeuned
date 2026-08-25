@@ -580,8 +580,12 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
               <input class="field" type="text" id="st-carnet" placeholder="Carnet" style="flex:1;min-width:100px">
               <input class="field" type="text" id="st-name" placeholder="Nombre completo" style="flex:2;min-width:140px">
             </div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+              <input class="field" type="email" id="st-email" placeholder="Correo electrónico * (ej: est@uned.cr)" style="flex:2">
+              <input class="field" type="text" id="st-pass" placeholder="Contraseña (opcional, mín. 6)" style="flex:1;min-width:140px">
+            </div>
+            <div class="field-hint" style="margin-top:-4px;margin-bottom:8px">Si deja la contraseña en blanco, se genera una automáticamente.</div>
             <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-              <input class="field" type="email" id="st-email" placeholder="Correo electrónico * (ej: est@uned.cr)" style="flex:3">
               <button class="btn btn-primary btn-sm" onclick="addStudent()" style="white-space:nowrap">+ Agregar</button>
             </div>
             <div class="field-error" id="st-err"></div>
@@ -947,6 +951,7 @@ async function addStudent(){
   const carnet=document.getElementById('st-carnet').value.trim();
   const name=document.getElementById('st-name').value.trim();
   const email=document.getElementById('st-email').value.trim();
+  const manualPass=document.getElementById('st-pass').value;
   const errEl=document.getElementById('st-err');
   errEl.style.display='none';
 
@@ -964,8 +969,15 @@ async function addStudent(){
     errEl.textContent='El correo electrónico es obligatorio y debe tener un formato válido.';
     errEl.style.display='block';return;
   }
+  // Contraseña manual opcional (workaround temporal mientras se investiga
+  // por qué la contraseña generada automáticamente no siempre funciona al
+  // llegar por correo). Firebase Auth exige mínimo 6 caracteres.
+  if(manualPass && manualPass.length<6){
+    errEl.textContent='La contraseña manual debe tener al menos 6 caracteres.';
+    errEl.style.display='block';return;
+  }
 
-  const tempPassword = generatePassword();
+  const tempPassword = manualPass || generatePassword();
   let uid;
   try{
     uid = await createStudentAuthAccount(email, tempPassword);
@@ -982,7 +994,7 @@ async function addStudent(){
 
   try{
     await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
-    ['st-carnet','st-name','st-email'].forEach(id=>document.getElementById(id).value='');
+    ['st-carnet','st-name','st-email','st-pass'].forEach(id=>document.getElementById(id).value='');
     await renderStudents();
 
     try{

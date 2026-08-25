@@ -264,6 +264,7 @@ label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2
 
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 
 <script>
@@ -493,6 +494,7 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
         <div class="card-body">
           <div id="res-notice"></div>
           <div class="result-stats" id="res-stats"></div>
+          <div style="max-width:520px;margin:0 auto 18px"><canvas id="res-chart"></canvas></div>
           <div id="res-bars"></div>
           <div id="res-quorum"></div>
           <div id="res-detail" style="display:none;margin-top:18px">
@@ -667,6 +669,22 @@ let resultsMode='summary';
 let currentProcId=null;
 let draftCandidates=[];
 let processes=[];
+let resChartInstance=null;
+
+function renderResultsChart(labels,dataPct,colors){
+  const canvas=document.getElementById('res-chart');
+  if(!canvas||typeof Chart==='undefined')return;
+  if(resChartInstance){resChartInstance.destroy();resChartInstance=null;}
+  resChartInstance=new Chart(canvas,{
+    type:'bar',
+    data:{labels,datasets:[{data:dataPct,backgroundColor:colors,borderRadius:4}]},
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.parsed.y+'%'}}},
+      scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}
+    }
+  });
+}
 
 const EMAILJS_SERVICE  = 'service_exm4smb';
 const EMAILJS_TEMPLATE = 'template_p6uvglf';
@@ -837,9 +855,11 @@ function renderResults(p){
   if(r.mode==='personas'){
     bars=r.candidates.map((c,i)=>{const cnt=r.counts[c.id]||0,pct=r.pct(cnt),col=PALETTE[i%PALETTE.length];
       return`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${c.name}</span><span class="result-bar-count" style="color:${col}">${cnt} <span style="font-size:12px;color:var(--text2)">(${pct}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${pct}%;background:${col}"></div></div></div>`;}).join('');
+    renderResultsChart(r.candidates.map(c=>c.name), r.candidates.map((c,i)=>r.pct(r.counts[c.id]||0)), r.candidates.map((c,i)=>PALETTE[i%PALETTE.length]));
   } else {
     bars=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstención',c:r.abs,col:'#8a6e00'}]
       .map(b=>`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${b.l}</span><span class="result-bar-count" style="color:${b.col}">${b.c} <span style="font-size:12px;color:var(--text2)">(${r.pct(b.c)}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${r.pct(b.c)}%;background:${b.col}"></div></div></div>`).join('');
+    renderResultsChart(['A Favor','En Contra','Abstención'], [r.pct(r.favor),r.pct(r.contra),r.pct(r.abs)], ['#1a6b3c','#8b1a1a','#8a6e00']);
   }
   document.getElementById('res-bars').innerHTML=bars;
 

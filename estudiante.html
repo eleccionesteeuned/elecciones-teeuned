@@ -268,6 +268,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
         <div class="card-body">
           <div id="res-notice"></div>
           <div class="result-stats" id="res-stats"></div>
+          <div style="max-width:520px;margin:0 auto 18px"><canvas id="res-chart"></canvas></div>
           <div id="res-bars"></div>
           <div id="res-quorum"></div>
         </div>
@@ -279,6 +280,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
   <div class="app-footer">TEEUNED - FEUNED · Universidad Estatal a Distancia de Costa Rica · v3.0</div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <!-- Script 1 (UTILS, STORAGE, EMAIL, NOTIF) -->
 <script type="module">
 
@@ -481,6 +483,22 @@ var filterStatus='todas';
 var selectedVote=null;
 var currentProcId=null;
 var processes=[];
+var resChartInstance=null;
+
+function renderResultsChart(labels,dataPct,colors){
+  var canvas=document.getElementById('res-chart');
+  if(!canvas||typeof Chart==='undefined')return;
+  if(resChartInstance){resChartInstance.destroy();resChartInstance=null;}
+  resChartInstance=new Chart(canvas,{
+    type:'bar',
+    data:{labels:labels,datasets:[{data:dataPct,backgroundColor:colors,borderRadius:4}]},
+    options:{
+      responsive:true,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){return ctx.parsed.y+'%';}}}},
+      scales:{y:{beginAtZero:true,max:100,ticks:{callback:function(v){return v+'%';}}}}
+    }
+  });
+}
 
 document.addEventListener('DOMContentLoaded',function(){
   session = checkAuth('student');
@@ -720,10 +738,12 @@ function openResults(pid){
       var cnt=r.counts[c.id]||0,pct=r.pct(cnt),col=PALETTE[i%PALETTE.length];
       bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+c.name+'</span><span class="result-bar-count" style="color:'+col+'">'+cnt+' <span style="font-size:12px;color:var(--text2)">('+pct+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>';
     });
+    renderResultsChart(r.candidates.map(function(c){return c.name;}), r.candidates.map(function(c){return r.pct(r.counts[c.id]||0);}), r.candidates.map(function(c,i){return PALETTE[i%PALETTE.length];}));
   }else{
     [{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}].forEach(function(b){
       bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+b.l+'</span><span class="result-bar-count" style="color:'+b.col+'">'+b.c+' <span style="font-size:12px;color:var(--text2)">('+r.pct(b.c)+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+r.pct(b.c)+'%;background:'+b.col+'"></div></div></div>';
     });
+    renderResultsChart(['A Favor','En Contra','Abstencion'], [r.pct(r.favor),r.pct(r.contra),r.pct(r.abs)], ['#1a6b3c','#8b1a1a','#8a6e00']);
   }
   document.getElementById('res-bars').innerHTML=bars;
   var hasQ=r.total>=p.quorum;

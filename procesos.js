@@ -42,3 +42,24 @@ export async function registrarVoto(processId, voto) {
 export async function cerrarProceso(processId) {
   await updateDoc(doc(db, "procesos", processId), { status: "cerrada" });
 }
+
+// Agrupa procesos por día de creación (fecha local), más reciente primero.
+// Usado por los 3 paneles (TEEUNED/Fiscalía/Estudiantil) para que la lista
+// de procesos no se sature — se colapsan por día en vez de mostrarse todos
+// juntos, y el filtro de fecha se apoya en la misma clave (YYYY-MM-DD).
+export function groupByDay(processes) {
+  const groups = new Map();
+  for (const p of processes) {
+    const d = new Date(p.createdAt);
+    const key = isNaN(d) ? "sin-fecha" : d.toLocaleDateString("en-CA");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(p);
+  }
+  return Array.from(groups.entries())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([key, items]) => ({
+      key,
+      label: key === "sin-fecha" ? "Sin fecha" : new Date(key + "T00:00:00").toLocaleDateString("es-CR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }),
+      items,
+    }));
+}

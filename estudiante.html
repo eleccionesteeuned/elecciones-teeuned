@@ -545,21 +545,27 @@ function renderCard(p){
   var sB=isActive?'<span class="badge badge-active">&#9679; Activa</span>':'<span class="badge badge-closed">&#9673; Cerrada</span>';
   var tB=p.type==='abierta'?'<span class="badge badge-open">Abierta</span>':p.type==='personas'?'<span class="badge badge-personas">Personas</span>':'<span class="badge badge-secret">Cerrada</span>';
   var vB=hasVoted?'<span class="badge badge-voted">&#10003; Votado</span>':'';
+  // Mientras el proceso sigue activo, no se muestra el conteo de votos ni
+  // las mini-barras (ver resultados en vivo podría sesgar a quienes aún
+  // no han votado) — se habilitan automáticamente al cerrarse.
+  var votesMeta=isActive?'':'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>';
   var bars='';
-  if(r.mode==='personas'){
-    bars=r.candidates.map(function(c,i){
-      var cnt=r.counts[c.id]||0;
-      return '<div class="mini-bar-row"><span class="mini-bar-label">'+c.name+'</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+r.pct(cnt)+'%;background:'+PALETTE[i%PALETTE.length]+'"></div></div><span class="mini-bar-count" style="color:'+PALETTE[i%PALETTE.length]+'">'+cnt+'</span></div>';
-    }).join('');
-  }else{
-    [{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}].forEach(function(b){
-      bars+='<div class="mini-bar-row"><span class="mini-bar-label">'+b.l+'</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+r.pct(b.c)+'%;background:'+b.col+'"></div></div><span class="mini-bar-count" style="color:'+b.col+'">'+b.c+'</span></div>';
-    });
+  if(!isActive){
+    if(r.mode==='personas'){
+      bars=r.candidates.map(function(c,i){
+        var cnt=r.counts[c.id]||0;
+        return '<div class="mini-bar-row"><span class="mini-bar-label">'+c.name+'</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+r.pct(cnt)+'%;background:'+PALETTE[i%PALETTE.length]+'"></div></div><span class="mini-bar-count" style="color:'+PALETTE[i%PALETTE.length]+'">'+cnt+'</span></div>';
+      }).join('');
+    }else{
+      [{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}].forEach(function(b){
+        bars+='<div class="mini-bar-row"><span class="mini-bar-label">'+b.l+'</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:'+r.pct(b.c)+'%;background:'+b.col+'"></div></div><span class="mini-bar-count" style="color:'+b.col+'">'+b.c+'</span></div>';
+      });
+    }
   }
   var acts='';
   if(isActive&&!hasVoted)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\')">&#128499; Votar</button>';
   acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\',\'summary\')">&#128202; Ver Resultados</button>';
-  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'Sin descripción disponible.')+'</div><div class="process-meta">'+sB+tB+'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>'+vB+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
+  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'Sin descripción disponible.')+'</div><div class="process-meta">'+sB+tB+votesMeta+vB+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
 }
 
 function openVote(pid){
@@ -680,6 +686,22 @@ function openResults(pid){
   document.getElementById('res-desc').textContent=p.description||'Sin descripción disponible.';
   var r=getResults(p);
   var isPersonas=p.type==='personas';
+
+  // Mientras el proceso sigue activo (abierto a votar), no se muestran
+  // conteos ni gráficos a los estudiantes — ver resultados en vivo podría
+  // sesgar a quienes aún no han votado. Se habilitan automáticamente al
+  // cerrarse (TEEUNED → Cerrar).
+  if(p.status==='activa'){
+    document.getElementById('res-notice').innerHTML='<div class="info-box info-warn">Esta votación sigue activa. Los resultados estarán disponibles cuando el proceso se cierre.</div>';
+    document.getElementById('res-stats').innerHTML='';
+    document.getElementById('res-bars').innerHTML='';
+    document.getElementById('res-quorum').innerHTML='';
+    if(resChartInstance){resChartInstance.destroy();resChartInstance=null;}
+    document.getElementById('res-actions').innerHTML='<button class="btn btn-secondary btn-sm" onclick="goHome()">Volver</button>';
+    showPane('results');
+    return;
+  }
+
   var notice='';
   if(isPersonas)notice='<div class="info-box info-purple">Votacion de Personas - Siempre Secreta. Solo se muestran resultados finales agregados.</div>';
   else if(p.type==='cerrada')notice='<div class="info-box info-info">Votacion Cerrada. Solo se muestran resultados agregados.</div>';

@@ -243,7 +243,6 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
                 Codigo de verificacion: <span style="font-family:monospace" id="done-hash"></span><br>
                 <span style="font-size:11px;opacity:.8">El voto secreto garantiza que su decision es confidencial.</span>
               </div>
-              <div id="email-status-msg" style="min-height:18px;margin-bottom:14px"></div>
               <div class="confirm-actions">
                 <button class="btn btn-primary" onclick="openResults(currentProcId)">Ver Resultados</button>
                 <button class="btn btn-secondary" onclick="goHome()">Volver al Inicio</button>
@@ -354,8 +353,6 @@ function saveProcesses(p){localStorage.setItem('tee_processes',JSON.stringify(p)
 function getSession(){try{return JSON.parse(localStorage.getItem('tee_session')||'null');}catch(e){return null;}}
 function saveSession(u){localStorage.setItem('tee_session',JSON.stringify(u));}
 function clearSession(){localStorage.removeItem('tee_session');}
-function getEmailCfg(){try{return JSON.parse(localStorage.getItem('tee_emailcfg')||'{}');}catch(e){return{};}}
-function saveEmailCfg(c){localStorage.setItem('tee_emailcfg',JSON.stringify(c));}
 
 // AUTH
 function checkAuth(requiredRole){
@@ -396,43 +393,6 @@ function getResults(p){
   return{mode:'standard',favor:favor,contra:contra,abs:abs,total:total,pct:function(n){return total>0?Math.round(n/total*100):0;}};
 }
 
-// EMAIL via Power Automate
-async function sendVoteConfirmation(vote,process,statusElId){
-  var el=statusElId?document.getElementById(statusElId):null;
-  var cfg=getEmailCfg();
-
-  if(!cfg.enabled||!cfg.webhookUrl){
-    if(el)el.innerHTML='<span style="color:#6b4c00;font-size:12px">Correo no configurado (configure Power Automate en el Padron - TEEUNED).</span>';
-    return;
-  }
-
-  const student = await getStudentByCarnet(vote.voterCarnet);
-  var email = student && student.email ? student.email : null;
-
-  if(!email){
-    if(el)el.innerHTML='<span style="color:#6b4c00;font-size:12px">Este estudiante no tiene correo registrado.</span>';
-    return;
-  }
-
-  if(el)el.innerHTML='<span style="color:#0d3d70;font-size:12px">Enviando correo de confirmacion...</span>';
-
-  fetch(cfg.webhookUrl,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({
-      to_email:email,
-      to_name:vote.voterName,
-      carnet:vote.voterCarnet,
-      subject:'Confirmacion de voto - '+process.title,
-      body:'Estimado/a '+vote.voterName+',\n\nSu voto ha sido registrado exitosamente.\n\nProceso: '+process.title+'\nCarnet: '+vote.voterCarnet+'\nFecha: '+fmtDate(vote.ts)+'\nHora: '+fmtTime(vote.ts)+'\nCodigo de verificacion: #'+vote.voterHash+'\n\nPor garantia del voto secreto, no se revela la opcion seleccionada.\n\nFiscalia FEUNED - TEEUNED\nUniversidad Estatal a Distancia de Costa Rica'
-    })
-  }).then(function(){
-    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">&#10003; Correo enviado a '+email+'</span>';
-  }).catch(function(){
-    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">&#10003; Notificacion enviada a '+email+'</span>';
-  });
-}
-
 // NOTIFICATIONS
 var _nt=null;
 function showNotif(msg,type){
@@ -462,7 +422,6 @@ window.fmtDate = fmtDate;
 window.fmtTime = fmtTime;
 window.hash8 = hash8;
 window.showNotif = showNotif;
-window.sendVoteConfirmation = sendVoteConfirmation;
 window.getStudentByCarnet = getStudentByCarnet;
 window.saveSession = saveSession;
 window.clearSession = clearSession;
@@ -708,10 +667,8 @@ async function submitVote(){
 
   document.getElementById('done-choice').textContent=label;
   document.getElementById('done-hash').textContent='#'+nv.voterHash;
-  document.getElementById('email-status-msg').innerHTML='';
   setVoteStep('done');
   showNotif('Voto emitido correctamente.');
-  sendVoteConfirmation(nv,p,'email-status-msg');
 }
 
 function openResults(pid){

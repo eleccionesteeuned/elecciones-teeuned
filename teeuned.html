@@ -328,8 +328,6 @@ function saveProcesses(p){localStorage.setItem('tee_processes',JSON.stringify(p)
 function getSession(){try{return JSON.parse(localStorage.getItem('tee_session')||'null');}catch{return null;}}
 function saveSession(u){localStorage.setItem('tee_session',JSON.stringify(u));}
 function clearSession(){localStorage.removeItem('tee_session');}
-function getEmailCfg(){return JSON.parse(localStorage.getItem('tee_emailcfg')||'{}');}
-function saveEmailCfg(c){localStorage.setItem('tee_emailcfg',JSON.stringify(c));}
 // ---
 function checkAuth(requiredRole){
   const session=getSession();
@@ -372,61 +370,6 @@ function getResults(p){
 }
 
 // ---
-function initEmailJS(){const cfg=getEmailCfg();if(cfg.publicKey&&typeof emailjs!=='undefined')emailjs.init({publicKey:cfg.publicKey});}
-function _sendPA(payload){
-  var cfg=getEmailCfg();
-  if(!cfg.enabled||!cfg.webhookUrl) return false;
-  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(function(){});
-  return true;
-}
-
-function sendVoteConfirmation(vote,process,statusElId){
-  var el=statusElId?document.getElementById(statusElId):null;
-  var cfg=getEmailCfg();
-  if(!cfg.enabled||!cfg.webhookUrl){if(el)el.innerHTML='<span style="color:#6b4c00;font-size:12px">⚠ Correo no configurado — configure Power Automate en el Padrón (TEEUNED).</span>';return;}
-
-  if(el)el.innerHTML='<span style="color:#0d3d70;font-size:12px">📧 Enviando correo de confirmación...</span>';
-
-  // Para no romper tu sistema, este envío se mantiene igual,
-  // pero el correo del estudiante ahora se toma desde Firestore en renderStudents().
-  // En esta función se mantiene comportamiento original si no hay correo.
-
-  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    to_email:'', to_name:vote.voterName, carnet:vote.voterCarnet,
-    subject:'Confirmación de voto — '+process.title,
-    body:'Estimado/a '+vote.voterName+',\n\nSu voto ha sido registrado exitosamente en el Sistema de Votación Electrónica de la FEUNED.\n\nProceso: '+process.title+'\nCarnet: '+vote.voterCarnet+'\nFecha: '+fmtDate(vote.ts)+'\nHora: '+fmtTime(vote.ts)+'\nCódigo de verificación: #'+vote.voterHash+'\n\nEste código confirma la recepción de su voto. Por garantía del voto secreto, el sistema no revela la opción seleccionada.\n\nFiscalía FEUNED — TEEUNED\nUniversidad Estatal a Distancia de Costa Rica'
-  })}).then(function(r){
-    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">✓ Correo enviado</span>';
-  }).catch(function(){
-    if(el)el.innerHTML='<span style="color:#155c34;font-size:12px">✓ Notificación enviada</span>';
-  });
-}
-
-function sendPasswordReset(student,newPass,statusElId){
-  var el=statusElId?document.getElementById(statusElId):null;
-  var cfg=getEmailCfg();
-  if(!cfg.enabled||!cfg.webhookUrl){
-    if(el)el.innerHTML='<span style="color:#7a1515;font-size:13px">⚠ Correo no configurado. Configure Power Automate en el Padrón (TEEUNED).</span>';
-    return false;
-  }
-  if(!student.email){
-    if(el)el.innerHTML='<span style="color:#7a1515;font-size:13px">⚠ No hay correo registrado para este carnet. Contacte al TEEUNED.</span>';
-    return false;
-  }
-  if(el)el.innerHTML='<span style="color:#0d3d70;font-size:13px">📧 Enviando nueva contraseña a '+student.email+'...</span>';
-  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    to_email:student.email, to_name:student.name, carnet:student.carnet,
-    subject:'Nueva contraseña — Sistema de Votación FEUNED',
-    body:'Estimado/a '+student.name+',\n\nSu contraseña ha sido restablecida exitosamente.\n\nCarnet: '+student.carnet+'\nNueva contraseña: '+newPass+'\n\nIngrese al sistema con esta contraseña y cámbiela por una propia si lo desea.\n\nFiscalía FEUNED — TEEUNED\nUniversidad Estatal a Distancia de Costa Rica'
-  })}).then(function(){
-    if(el)el.innerHTML='<span style="color:#155c34;font-size:13px">✓ Nueva contraseña enviada a <strong>'+student.email+'</strong>. Revise su correo.</span>';
-  }).catch(function(){
-    if(el)el.innerHTML='<span style="color:#155c34;font-size:13px">✓ Notificación enviada a <strong>'+student.email+'</strong>.</span>';
-  });
-  return true;
-}
-
-// ---
 let _nt=null;
 function showNotif(msg,type='success'){
   let el=document.getElementById('tee-notif');
@@ -438,7 +381,6 @@ function showNotif(msg,type='success'){
   _nt=setTimeout(()=>{el.style.display='none';},3600);
 }
 
-document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
 </script>
 </head>
 
@@ -595,34 +537,6 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
               <button class="btn btn-excel btn-sm" onclick="exportStudents()">⬇ Excel</button>
               <button class="btn btn-sm" onclick="resendPasswordAll()">🔑 Reenviar contraseña a todos</button>
               <button class="btn btn-danger btn-sm" onclick="clearStudents()">🗑 Limpiar Padrón</button>
-            </div>
-
-            <!-- EMAIL CONFIG -->
-            <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
-              <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;margin-bottom:8px" onclick="toggleEmailPanel()">
-                <label class="field-label" style="margin:0;cursor:pointer">📧 Panel de Correo Electrónico (Power Automate)</label>
-                <span id="email-toggle-lbl" style="font-size:12px;color:var(--text2)">▼</span>
-              </div>
-
-              <div id="email-panel" style="display:none">
-                <div id="email-cfg-status" style="margin-bottom:10px"></div>
-
-                <div class="info-box info-warn" style="font-size:12px">
-                  📌 <strong>Recomendado — Power Automate (Microsoft 365):</strong>
-                  Use su cuenta institucional para enviar correos sin servicios externos.
-                </div>
-
-                <div class="form-group">
-                  <label class="field-label">URL del flujo de Power Automate</label>
-                  <input class="field" type="url" id="pa-webhook" placeholder="https://prod-xx.westus.logic.azure.com/workflows/..." style="font-size:13px">
-                  <div class="field-hint">Pegue aquí la URL HTTP POST que le da Power Automate.</div>
-                </div>
-
-                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-                  <button class="btn btn-primary btn-sm" onclick="saveEmailCfgForm()">✓ Guardar y Activar</button>
-                  <button class="btn btn-secondary btn-sm" onclick="testEmail()">🔍 Probar envío</button>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -978,8 +892,6 @@ async function renderStudents(){
       </td>
     </tr>`).join('')
     : '<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
-
-  renderEmailStatus();
 }
 
 async function addStudent(){
@@ -1258,55 +1170,6 @@ async function exportStudents(){
   showNotif('Padrón exportado en Excel.');
 }
 
-// ---
-function toggleEmailPanel(){
-  const panel=document.getElementById('email-panel');
-  const lbl=document.getElementById('email-toggle-lbl');
-  const isOpen=panel.style.display!=='none';
-  panel.style.display=isOpen?'none':'block';
-  lbl.textContent=isOpen?'▼':'▲';
-  if(!isOpen){
-    renderEmailStatus();
-  }
-}
-
-function renderEmailStatus(){
-  const el=document.getElementById('email-cfg-status');
-  if(!el) return;
-  const cfg=getEmailCfg();
-  el.innerHTML=cfg.enabled
-    ? '<div class="info-box info-success" style="margin:0">✓ Correo activo — Se enviarán confirmaciones automáticas.</div>'
-    : '<div class="info-box info-warn" style="margin:0">⚠ Correo no configurado — Los estudiantes no recibirán confirmaciones por correo.</div>';
-}
-
-function saveEmailCfgForm(){
-  const url=document.getElementById('pa-webhook').value.trim();
-  if(!url){
-    showNotif('Pegue la URL de Power Automate.','error');
-    return;
-  }
-  saveEmailCfg({webhookUrl:url,enabled:true});
-  renderEmailStatus();
-  showNotif('Configuración guardada.');
-}
-
-async function testEmail(){
-  var cfg=getEmailCfg();
-  if(!cfg.enabled||!cfg.webhookUrl){showNotif('Guarde primero la URL de Power Automate.','error');return;}
-
-  var students = await getStudents();
-  var stu=null;
-  for(var i=0;i<students.length;i++){if(students[i].email){stu=students[i];break;}}
-
-  if(!stu){showNotif('No hay estudiantes con correo registrado.','error');return;}
-
-  showNotif('Enviando prueba a '+stu.email+'...');
-  fetch(cfg.webhookUrl,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-    to_email:stu.email,to_name:stu.name,carnet:stu.carnet,
-    subject:'[PRUEBA] Sistema de Votación TEEUNED',
-    body:'Estimado/a '+stu.name+', este es un correo de prueba del Sistema de Votación Electrónica FEUNED. Si lo recibe, el sistema funciona correctamente.'
-  })}).then(function(){showNotif('✓ Prueba enviada a '+stu.email);}).catch(function(){showNotif('✓ Solicitud enviada (verifique su bandeja).');});
-}
 
 // Hacer visibles funciones para onclick
 window.showPane = showPane;
@@ -1327,9 +1190,6 @@ window.resendPassword = resendPassword;
 window.resendPasswordAll = resendPasswordAll;
 window.importCSV = importCSV;
 window.exportStudents = exportStudents;
-window.toggleEmailPanel = toggleEmailPanel;
-window.saveEmailCfgForm = saveEmailCfgForm;
-window.testEmail = testEmail;
 
 </script>
 

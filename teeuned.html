@@ -593,6 +593,7 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
             <div class="field-error" id="st-err"></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
               <button class="btn btn-excel btn-sm" onclick="exportStudents()">⬇ Excel</button>
+              <button class="btn btn-sm" onclick="resendPasswordAll()">🔑 Reenviar contraseña a todos</button>
               <button class="btn btn-danger btn-sm" onclick="clearStudents()">🗑 Limpiar Padrón</button>
             </div>
 
@@ -971,7 +972,10 @@ async function renderStudents(){
       <td style="color:var(--text2);font-size:12px">${i+1}</td>
       <td class="mono">${s.carnet}</td><td>${s.name}</td>
       <td class="mono" style="font-size:11px">${s.email||'<span style="color:var(--text3);font-style:italic">Sin correo</span>'}</td>
-      <td><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="removeStudent('${s.carnet}')">✕</button></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-sm" style="padding:3px 8px" title="Reenviar contraseña" onclick="resendPassword('${s.carnet}')">🔑</button>
+        <button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="removeStudent('${s.carnet}')">✕</button>
+      </td>
     </tr>`).join('')
     : '<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
 
@@ -988,6 +992,14 @@ async function addStudent(){
 
   if(!carnet||!/^\d{4,12}$/.test(carnet)){
     errEl.textContent='Carnet inválido (solo dígitos, 4–12 caracteres).';
+    errEl.style.display='block';return;
+  }
+  // Mientras el carnet exista en el padrón (no se haya eliminado), no se
+  // permite agregarlo de nuevo — evita sobrescribir accidentalmente a un
+  // estudiante ya registrado (setDoc usa el carnet como ID de documento).
+  const existing = await getDoc(doc(db,"padron",carnet));
+  if(existing.exists()){
+    errEl.textContent='Ya existe un estudiante con ese carnet en el padrón. Elimínelo primero si desea reemplazarlo.';
     errEl.style.display='block';return;
   }
   if(!name){
@@ -1044,26 +1056,33 @@ async function addStudent(){
     ['st-carnet','st-name','st-email','st-pass'].forEach(id=>document.getElementById(id).value='');
     await renderStudents();
 
-    try{
-      const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: EMAILJS_SERVICE,
-          template_id: EMAILJS_TEMPLATE,
-          user_id: EMAILJS_KEY,
-          template_params: { to_email: email, to_name: name, carnet, password: tempPassword }
-        })
-      });
-      if(!res.ok){ const txt=await res.text(); throw new Error('EmailJS '+res.status+': '+txt); }
-      showNotif('Estudiante agregado y correo enviado a ' + email + '.');
-    }catch(mailErr){
-      console.error('EmailJS:', mailErr);
-      showNotif('Estudiante agregado. Error al enviar correo — contraseña: ' + tempPassword, 'error');
-    }
+    const sent = await sendPasswordEmail(email, name, carnet, tempPassword);
+    showNotif(sent ? 'Estudiante agregado y correo enviado a ' + email + '.' : 'Estudiante agregado. Error al enviar correo — contraseña: ' + tempPassword, sent ? 'success' : 'error');
   }catch(e){
     console.error(e);
     showNotif('Error guardando estudiante.','error');
+  }
+}
+
+// Envía la contraseña por correo vía EmailJS. Reutilizado por addStudent()
+// y por los botones "Reenviar contraseña" / "Reenviar a todos".
+async function sendPasswordEmail(email, name, carnet, password){
+  try{
+    const res = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        service_id: EMAILJS_SERVICE,
+        template_id: EMAILJS_TEMPLATE,
+        user_id: EMAILJS_KEY,
+        template_params: { to_email: email, to_name: name, carnet, password }
+      })
+    });
+    if(!res.ok){ const txt=await res.text(); throw new Error('EmailJS '+res.status+': '+txt); }
+    return true;
+  }catch(mailErr){
+    console.error('EmailJS:', mailErr);
+    return false;
   }
 }
 
@@ -1088,6 +1107,71 @@ async function deleteAuthAccounts(uids, emails=[]){
     console.error('delete-student:', e);
     return false;
   }
+}
+
+// Cambia la(s) contraseña(s) de cuenta(s) de Auth vía la función
+// serverless (Admin SDK) — el cliente no puede cambiar la contraseña de
+// otro usuario. updates: [{uid, password}]. Devuelve el array de
+// resultados de la función, o null si la llamada en sí falló.
+async function resetAuthPasswords(updates){
+  try{
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/.netlify/functions/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: JSON.stringify({ updates })
+    });
+    if(!res.ok){ console.error('reset-password:', await res.text()); return null; }
+    const data = await res.json();
+    return data.results;
+  }catch(e){
+    console.error('reset-password:', e);
+    return null;
+  }
+}
+
+// Genera una contraseña nueva para UN estudiante, la aplica en Firebase
+// Auth y la reenvía por correo.
+async function resendPassword(carnet){
+  const snap = await getDoc(doc(db,"padron",carnet));
+  if(!snap.exists()) return;
+  const s = snap.data();
+  if(!s.authUid){ showNotif('Este estudiante no tiene cuenta de acceso vinculada.','error'); return; }
+  if(!confirm('¿Generar y reenviar una nueva contraseña a ' + s.name + ' (' + s.email + ')?')) return;
+
+  const newPassword = generatePassword();
+  const results = await resetAuthPasswords([{ uid: s.authUid, password: newPassword }]);
+  if(!results || !results[0] || !results[0].ok){
+    showNotif('Error cambiando la contraseña de acceso.','error');
+    return;
+  }
+  const sent = await sendPasswordEmail(s.email, s.name, s.carnet, newPassword);
+  showNotif(sent ? 'Nueva contraseña enviada a ' + s.email + '.' : 'Contraseña cambiada, pero falló el envío del correo — nueva contraseña: ' + newPassword, sent ? 'success' : 'error');
+}
+
+// Igual que resendPassword() pero para todo el padrón a la vez.
+async function resendPasswordAll(){
+  const students = await getStudents();
+  const withAuth = students.filter(s=>s.authUid);
+  if(!withAuth.length){ showNotif('No hay estudiantes con cuenta de acceso vinculada.','error'); return; }
+  if(!confirm('¿Generar y reenviar una nueva contraseña a los ' + withAuth.length + ' estudiantes del padrón?')) return;
+
+  const passwords = {};
+  withAuth.forEach(s => { passwords[s.authUid] = generatePassword(); });
+  const updates = withAuth.map(s => ({ uid: s.authUid, password: passwords[s.authUid] }));
+  const results = await resetAuthPasswords(updates);
+  if(!results){ showNotif('Error cambiando las contraseñas de acceso.','error'); return; }
+
+  const okByUid = {};
+  results.forEach(r => { okByUid[r.uid] = r.ok; });
+
+  let sent=0, failed=0;
+  for(const s of withAuth){
+    if(!okByUid[s.authUid]){ failed++; continue; }
+    const ok = await sendPasswordEmail(s.email, s.name, s.carnet, passwords[s.authUid]);
+    if(ok) sent++; else failed++;
+  }
+  showNotif('Contraseñas reenviadas: ' + sent + ' correos enviados' + (failed ? ', ' + failed + ' con error' : '') + '.', failed ? 'error' : 'success');
 }
 
 async function removeStudent(carnet){
@@ -1142,6 +1226,9 @@ async function importCSV(event){
       // El correo es obligatorio (identidad de Firebase Auth) — se omite
       // cualquier fila sin un correo con formato válido.
       if(!carnet||!/^\d{4,12}$/.test(carnet)||!name||!email||!emailRe.test(email)){skipped++;continue;}
+
+      const dup = await getDoc(doc(db,"padron",carnet));
+      if(dup.exists()){skipped++;continue;}
 
       try{
         const tempPassword = generatePassword();
@@ -1236,6 +1323,8 @@ window.renderStudents = renderStudents;
 window.addStudent = addStudent;
 window.removeStudent = removeStudent;
 window.clearStudents = clearStudents;
+window.resendPassword = resendPassword;
+window.resendPasswordAll = resendPasswordAll;
 window.importCSV = importCSV;
 window.exportStudents = exportStudents;
 window.toggleEmailPanel = toggleEmailPanel;

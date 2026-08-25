@@ -658,7 +658,7 @@ import {
   getDocs,
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { cargarProcesos, guardarProceso, cerrarProceso } from "./procesos.js";
 
 let session=null;
@@ -668,21 +668,31 @@ let currentProcId=null;
 let draftCandidates=[];
 let processes=[];
 
-const EMAILJS_SERVICE  = 'service_teeuned';
-const EMAILJS_TEMPLATE = 'template_z6uy6lw';
-const EMAILJS_KEY      = 'hR6N4Pc8U9JZ2CVkJ';
+const EMAILJS_SERVICE  = 'service_exm4smb';
+const EMAILJS_TEMPLATE = 'template_p6uvglf';
+const EMAILJS_KEY      = 'VWKGr6LKGcJsOGAng';
 
 document.addEventListener('DOMContentLoaded',async ()=>{
   if(typeof emailjs !== 'undefined') emailjs.init({ publicKey: EMAILJS_KEY });
   session=checkAuth('teeuned');
   if(!session) return;
-  // Además del guard por rol en localStorage (checkAuth, arriba), se exige
-  // una sesión real de Firebase Auth antes de mostrar el panel.
-  onAuthStateChanged(auth, async (user)=>{
-    if(!user){ window.location.href='index.html'; return; }
-    document.getElementById('nav-name').textContent=session.name;
+  // La sesión real (Firebase Auth) la exigen las reglas de Firestore al
+  // momento de leer/escribir, no aquí. Verificarla de nuevo con
+  // onAuthStateChanged en la carga de la página causaba una redirección
+  // falsa al login (su primer callback puede llegar con user=null
+  // mientras el SDK restaura la sesión persistida).
+  document.getElementById('nav-name').textContent=session.name;
+  try{
     await renderDashboard();
-  });
+  }catch(e){
+    if(e && e.code === 'permission-denied'){
+      alert("⚠️ Su sesión ya no está activa. Por favor, inicie sesión de nuevo.");
+      doLogout();
+    }else{
+      console.error(e);
+      showNotif('Error al cargar el panel.','error');
+    }
+  }
 });
 
 // doLogout real: cierra también la sesión de Firebase Auth, no solo la

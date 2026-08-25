@@ -463,6 +463,8 @@ window.showNotif = showNotif;
 window.sendVoteConfirmation = sendVoteConfirmation;
 window.getStudentByCarnet = getStudentByCarnet;
 window.saveSession = saveSession;
+window.clearSession = clearSession;
+window.PALETTE = PALETTE;
 
 </script>
 
@@ -471,7 +473,7 @@ window.saveSession = saveSession;
 
 import { cargarProcesos, registrarVoto } from "./procesos.js";
 import { auth } from "./firebase.js";
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 var session=null;
 var currentStudent=null;
@@ -484,28 +486,43 @@ document.addEventListener('DOMContentLoaded',function(){
   session = checkAuth('student');
   if(!session) return;
 
-  // Además del guard por rol en localStorage (checkAuth, arriba), se exige
-  // una sesión real de Firebase Auth antes de permitir cualquier escritura
-  // (emisión de voto). Si la caché local existe pero la sesión real de
-  // Firebase expiró/fue borrada, se redirige al login.
-  onAuthStateChanged(auth, async function(user){
-    if(!user){ window.location.href='index.html'; return; }
+  // La sesión real (Firebase Auth) se verifica al momento de escribir
+  // (emitir voto) vía las reglas de Firestore — no aquí. Comprobarla de
+  // nuevo en la carga de la página con onAuthStateChanged es redundante y
+  // además causaba una redirección falsa al login: su primer callback
+  // puede llegar con user=null mientras el SDK todavía está restaurando
+  // la sesión persistida, provocando un rebote/parpadeo aunque la sesión
+  // sí sea válida.
+  (async function(){
+    try{
+      const student = await getStudentByCarnet(session.carnet);
+      if(!student){
+        alert("⚠️ Su carnet no está registrado en el padrón. Contacte al TEEUNED.");
+        doLogout();
+        return;
+      }
+      currentStudent = student;
 
-    const student = await getStudentByCarnet(session.carnet);
-    if(!student){
-      alert("⚠️ Su carnet no está registrado en el padrón. Contacte al TEEUNED.");
-      doLogout();
-      return;
+      document.getElementById('nav-name').textContent = student.name + ' (' + student.carnet + ')';
+      session.name = student.name;
+      saveSession(session);
+
+      processes = await cargarProcesos();
+      renderDashboard();
+    }catch(e){
+      // Firestore rechaza la lectura si la sesión real de Firebase Auth ya
+      // no está activa en este navegador (p.ej. se cerró sesión desde otra
+      // pestaña con otra cuenta — solo puede haber una sesión activa por
+      // navegador). La caché local (checkAuth) no detecta esto por sí sola.
+      if(e && e.code === 'permission-denied'){
+        alert("⚠️ Su sesión ya no está activa. Por favor, inicie sesión de nuevo.");
+        doLogout();
+      }else{
+        console.error(e);
+        alert("⚠️ Ocurrió un error cargando los procesos. Intente de nuevo.");
+      }
     }
-    currentStudent = student;
-
-    document.getElementById('nav-name').textContent = student.name + ' (' + student.carnet + ')';
-    session.name = student.name;
-    saveSession(session);
-
-    processes = await cargarProcesos();
-    renderDashboard();
-  });
+  })();
 });
 
 // doLogout real: cierra también la sesión de Firebase Auth, no solo la

@@ -40,8 +40,19 @@ service cloud.firestore {
       //      padrón para ESE carnet (evita votar en nombre de otro),
       //   3) el carnet del voto coincide con el ID del documento,
       //   4) no existe ya un voto de ese carnet en este proceso (anti doble voto).
+      // NOTA: la lectura de "votos" tiene que estar abierta a cualquier
+      // autenticado (no solo isStaff()) porque la app calcula los conteos
+      // agregados (a favor/en contra/etc.) en el navegador leyendo TODA la
+      // subcolección — un estudiante no puede consultar únicamente su
+      // propio documento y aun así ver los resultados del proceso. Esto
+      // significa que el secreto del voto en procesos "cerrada"/"personas"
+      // depende de que la UI no muestre el nombre (ya lo hace), NO de que
+      // el dato sea inaccesible: alguien con la consola del navegador
+      // podría leer voterName/voterCarnet igual. Cerrar ese hueco de
+      // verdad requeriría agregar los resultados en un backend (Cloud
+      // Function), fuera del alcance actual (100% cliente, plan gratuito).
       match /votos/{carnet} {
-        allow read: if isStaff() || request.auth.uid == get(/databases/$(database)/documents/padron/$(carnet)).data.authUid;
+        allow read: if request.auth != null;
         allow create: if request.auth != null
           && get(/databases/$(database)/documents/padron/$(carnet)).data.authUid == request.auth.uid
           && request.resource.data.voterCarnet == carnet

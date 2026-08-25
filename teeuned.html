@@ -657,6 +657,7 @@ import {
   collection,
   doc,
   setDoc,
+  getDoc,
   getDocs,
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -1013,13 +1014,29 @@ async function addStudent(){
     uid = await createStudentAuthAccount(email, tempPassword);
   }catch(authErr){
     console.error(authErr);
+    // Correo "ya registrado" suele ser una cuenta huérfana: quedó de un
+    // estudiante que se eliminó del padrón antes de este arreglo (o si la
+    // función serverless de borrado falló). Se intenta limpiarla por
+    // correo y reintentar UNA vez antes de rendirse.
     if(authErr && authErr.code === 'auth/email-already-in-use'){
-      errEl.textContent = 'Este correo ya está registrado.';
+      const cleaned = await deleteAuthAccounts([], [email]);
+      if(cleaned){
+        try{
+          uid = await createStudentAuthAccount(email, tempPassword);
+        }catch(retryErr){
+          console.error(retryErr);
+        }
+      }
+      if(!uid){
+        errEl.textContent = 'Este correo ya está registrado y no se pudo liberar automáticamente.';
+        errEl.style.display='block';
+        return;
+      }
     } else {
       errEl.textContent = 'Error creando la cuenta de acceso del estudiante.';
+      errEl.style.display='block';
+      return;
     }
-    errEl.style.display='block';
-    return;
   }
 
   try{
@@ -1050,12 +1067,38 @@ async function addStudent(){
   }
 }
 
+// Borra la(s) cuenta(s) de Firebase Auth asociadas a uid(s), vía la
+// función serverless (Admin SDK). Si falla (p.ej. función no
+// desplegada/configurada aún), no bloquea el borrado del padrón — solo
+// avisa que la cuenta de acceso pudo haber quedado huérfana.
+async function deleteAuthAccounts(uids, emails=[]){
+  const uidList = uids.filter(Boolean);
+  const emailList = emails.filter(Boolean);
+  if(!uidList.length && !emailList.length) return true;
+  try{
+    const idToken = await auth.currentUser.getIdToken();
+    const res = await fetch('/.netlify/functions/delete-student', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+      body: JSON.stringify({ uids: uidList, emails: emailList })
+    });
+    if(!res.ok){ console.error('delete-student:', await res.text()); return false; }
+    return true;
+  }catch(e){
+    console.error('delete-student:', e);
+    return false;
+  }
+}
+
 async function removeStudent(carnet){
   if(!confirm('¿Eliminar a este estudiante del padrón?')) return;
   try{
+    const snap = await getDoc(doc(db,"padron",carnet));
+    const authUid = snap.exists() ? snap.data().authUid : null;
     await deleteDoc(doc(db,"padron",carnet));
+    const authOk = await deleteAuthAccounts([authUid]);
     await renderStudents();
-    showNotif('Estudiante eliminado del padrón.');
+    showNotif(authOk ? 'Estudiante eliminado del padrón.' : 'Estudiante eliminado del padrón. Aviso: no se pudo borrar su cuenta de acceso — si se vuelve a agregar con el mismo correo puede fallar.', authOk ? 'success' : 'error');
   }catch(e){
     console.error(e);
     showNotif('Error eliminando estudiante.','error');
@@ -1067,13 +1110,16 @@ async function clearStudents(){
 
   try{
     const snap = await getDocs(collection(db,"padron"));
+    const uids = [];
     const deletes = [];
     snap.forEach(d=>{
+      uids.push(d.data().authUid);
       deletes.push(deleteDoc(doc(db,"padron",d.id)));
     });
     await Promise.all(deletes);
+    const authOk = await deleteAuthAccounts(uids);
     await renderStudents();
-    showNotif('Padrón limpiado.');
+    showNotif(authOk ? 'Padrón limpiado.' : 'Padrón limpiado. Aviso: algunas cuentas de acceso pudieron no borrarse.', authOk ? 'success' : 'error');
   }catch(e){
     console.error(e);
     showNotif('Error limpiando padrón.','error');

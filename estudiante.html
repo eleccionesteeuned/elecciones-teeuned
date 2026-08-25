@@ -669,6 +669,7 @@ async function submitVote(){
     if(e.message==='ya-voto'){
       showNotif('Usted ya emitio un voto en este proceso.','error');
     }else{
+      console.error(e);
       showNotif('Error al registrar el voto. Intente de nuevo.','error');
     }
     return;

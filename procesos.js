@@ -1,7 +1,7 @@
 // procesos.js — Módulo Firestore para procesos y votos
 import { db } from "./firebase.js";
 import {
-  collection, doc, getDoc, getDocs, setDoc, updateDoc, arrayUnion, query, orderBy
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Carga todos los procesos con sus votos desde Firestore
@@ -27,14 +27,15 @@ export async function guardarProceso(p) {
 }
 
 // Registra un voto. Lanza "ya-voto" si el estudiante ya votó.
+// No actualiza "votedCarnets" en el documento del proceso: ese campo se
+// recalcula siempre desde la subcolección "votos" en cargarProcesos(), y
+// los estudiantes no tienen (ni necesitan) permiso para escribir en el
+// documento del proceso — solo TEEUNED puede.
 export async function registrarVoto(processId, voto) {
   const ref = doc(db, "procesos", processId, "votos", voto.voterCarnet);
   const existing = await getDoc(ref);
   if (existing.exists()) throw new Error("ya-voto");
   await setDoc(ref, voto);
-  await updateDoc(doc(db, "procesos", processId), {
-    votedCarnets: arrayUnion(voto.voterCarnet)
-  });
 }
 
 // Cierra un proceso activo

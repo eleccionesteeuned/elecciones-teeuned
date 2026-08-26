@@ -1515,7 +1515,7 @@ async function addStudent(){
   }
 
   try{
-    await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
+    await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid,passwordSetAt:Date.now()});
     ['st-carnet','st-name','st-email','st-pass'].forEach(id=>document.getElementById(id).value='');
     await renderStudents();
 
@@ -1629,6 +1629,7 @@ async function resendPassword(carnet){
       showNotif('Error cambiando la contraseña de acceso.','error');
       return;
     }
+    await setDoc(doc(db,"padron",carnet),{passwordSetAt:Date.now()},{merge:true});
     const sent = await sendPasswordEmail(s.email, s.name, s.carnet, newPassword);
     showNotif(sent ? 'Nueva contraseña enviada a ' + s.email + '.' : 'Contraseña cambiada, pero falló el envío del correo — nueva contraseña: ' + newPassword, sent ? 'success' : 'error');
   });
@@ -1652,6 +1653,7 @@ async function resendPasswordAll(){
     let sent=0, failed=0;
     for(const s of withAuth){
       if(!okByUid[s.authUid]){ failed++; continue; }
+      await setDoc(doc(db,"padron",s.carnet),{passwordSetAt:Date.now()},{merge:true});
       const ok = await sendPasswordEmail(s.email, s.name, s.carnet, passwords[s.authUid]);
       if(ok) sent++; else failed++;
     }
@@ -1719,7 +1721,7 @@ async function importCSV(event){
       try{
         const tempPassword = generatePassword();
         const uid = await createStudentAuthAccount(email, tempPassword);
-        await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
+        await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid,passwordSetAt:Date.now()});
         added++;
       }catch{
         skipped++;

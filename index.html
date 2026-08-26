@@ -462,6 +462,15 @@ async function doLoginFirestore() {
         errEl.textContent = '⚠ Este carnet no tiene correo registrado. Contacte al TEEUNED.';
         errEl.style.display='block'; return;
       }
+      // Las contraseñas de estudiantes son válidas por un máximo de 24
+      // horas desde que se generaron/reenviaron (passwordSetAt). Pasado
+      // ese plazo se bloquea el login y se le dirige a "¿Olvidó su
+      // contraseña?" para autogestionar el restablecimiento. No aplica a
+      // TEEUNED/Fiscalía (rama de portal aparte, más abajo).
+      if (student.passwordSetAt && (Date.now() - student.passwordSetAt) > 24*60*60*1000) {
+        errEl.textContent = '⚠ Su contraseña expiró (válida 24 horas). Use "¿Olvidó su contraseña?" para restablecerla.';
+        errEl.style.display='block'; return;
+      }
       try {
         await signInWithEmailAndPassword(auth, student.email, pass);
       } catch (authErr) {
@@ -510,6 +519,16 @@ async function doForgotPassword() {
       return;
     }
     await sendPasswordResetEmail(auth, stu.email);
+    // Refresca passwordSetAt vía función serverless (Admin SDK) — el
+    // cliente no tiene permiso de escritura en /padron. Best-effort: si
+    // falla, no bloquea el aviso ya que el correo de reseteo sí se envió.
+    try {
+      await fetch('/.netlify/functions/mark-password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ carnet })
+      });
+    } catch (e) { console.error('mark-password-reset:', e); }
     sEl.innerHTML = genericMsg;
   } catch (e) {
     sEl.innerHTML = '<span style="color:#7a1515;font-size:13px">Error al procesar la solicitud. Intente de nuevo.</span>';

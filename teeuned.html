@@ -669,6 +669,20 @@ function showNotif(msg,type='success'){
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
 </div>
 
+<!-- Modal de confirmación genérico (reemplaza window.confirm(), que en
+     algunos navegadores/automatizaciones bloquea la página de forma nativa
+     sin poder cerrarse) -->
+<div id="confirm-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeConfirmModal()">
+  <div class="modal-box">
+    <div class="modal-title">⚠ Confirmar acción</div>
+    <div class="modal-sub" id="confirm-modal-msg" style="margin-top:6px"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-secondary btn-sm" onclick="closeConfirmModal()">Cancelar</button>
+      <button class="btn btn-danger btn-sm" onclick="acceptConfirmModal()">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal cronómetro de cierre -->
 <div id="timer-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeTimerModal()">
   <div class="modal-box">
@@ -925,6 +939,26 @@ function renderCard(p){
 // experiencia). guardarProceso() reemplaza el documento completo (menos
 // votes/votedCarnets, recalculados siempre) por lo que se le pasa el
 // proceso ya cargado con solo endsAt modificado.
+// Modal de confirmación genérico — reemplaza window.confirm() en toda la
+// página (ver comentario junto al HTML del modal).
+let confirmModalCallback=null;
+function showConfirmModal(message,onYes){
+  document.getElementById('confirm-modal-msg').textContent=message;
+  confirmModalCallback=onYes;
+  document.getElementById('confirm-modal').style.display='flex';
+}
+function closeConfirmModal(){
+  document.getElementById('confirm-modal').style.display='none';
+  confirmModalCallback=null;
+}
+function acceptConfirmModal(){
+  const cb=confirmModalCallback;
+  closeConfirmModal();
+  if(cb) cb();
+}
+window.closeConfirmModal=closeConfirmModal;
+window.acceptConfirmModal=acceptConfirmModal;
+
 let timerModalPid=null;
 let timerModalIsAur=false;
 function setProcessTimer(pid,isAur){
@@ -970,16 +1004,17 @@ window.setProcessTimer=setProcessTimer;
 window.closeTimerModal=closeTimerModal;
 window.applyProcessTimer=applyProcessTimer;
 
-async function closeProcess(pid,isAur){
-  if(!confirm('¿Confirma cerrar este proceso? Esta acción no puede revertirse.')) return;
-  try{
-    if(isAur) await cerrarProcesoAUR(pid); else await cerrarProceso(pid);
-    showNotif('Proceso cerrado exitosamente.');
-  }catch(e){
-    showNotif('Error al cerrar el proceso.','error'); return;
-  }
-  if(currentProcId===pid) await openResults(pid,'summary',isAur);
-  else if(isAur) await renderAurPane(); else await renderDashboard();
+function closeProcess(pid,isAur){
+  showConfirmModal('¿Confirma cerrar este proceso? Esta acción no puede revertirse.',async()=>{
+    try{
+      if(isAur) await cerrarProcesoAUR(pid); else await cerrarProceso(pid);
+      showNotif('Proceso cerrado exitosamente.');
+    }catch(e){
+      showNotif('Error al cerrar el proceso.','error'); return;
+    }
+    if(currentProcId===pid) await openResults(pid,'summary',isAur);
+    else if(isAur) await renderAurPane(); else await renderDashboard();
+  });
 }
 
 // ---
@@ -1223,18 +1258,19 @@ async function addAurPadronEntry(){
     showNotif('Error agregando al padrón AUR.','error');
   }
 }
-async function removeAurPadronEntry(carnet){
-  if(!confirm('¿Quitar a este estudiante del padrón AUR? Ya no podrá ver ni votar en Votaciones AUR.')) return;
-  try{
-    const genSnap=await getDoc(doc(db,"padron",carnet));
-    await deleteDoc(doc(db,"padron_aur",carnet));
-    if(genSnap.exists()&&genSnap.data().authUid) await setStudentScopes([{uid:genSnap.data().authUid,sede:null}]);
-    showNotif('Quitado del padrón AUR.');
-    await renderAurPadron();
-  }catch(e){
-    console.error(e);
-    showNotif('Error quitando del padrón AUR.','error');
-  }
+function removeAurPadronEntry(carnet){
+  showConfirmModal('¿Quitar a este estudiante del padrón AUR? Ya no podrá ver ni votar en Votaciones AUR.',async()=>{
+    try{
+      const genSnap=await getDoc(doc(db,"padron",carnet));
+      await deleteDoc(doc(db,"padron_aur",carnet));
+      if(genSnap.exists()&&genSnap.data().authUid) await setStudentScopes([{uid:genSnap.data().authUid,sede:null}]);
+      showNotif('Quitado del padrón AUR.');
+      await renderAurPadron();
+    }catch(e){
+      console.error(e);
+      showNotif('Error quitando del padrón AUR.','error');
+    }
+  });
 }
 window.addAurPadronEntry=addAurPadronEntry;
 window.removeAurPadronEntry=removeAurPadronEntry;
@@ -1586,16 +1622,16 @@ async function resendPassword(carnet){
   if(!snap.exists()) return;
   const s = snap.data();
   if(!s.authUid){ showNotif('Este estudiante no tiene cuenta de acceso vinculada.','error'); return; }
-  if(!confirm('¿Generar y reenviar una nueva contraseña a ' + s.name + ' (' + s.email + ')?')) return;
-
-  const newPassword = generatePassword();
-  const results = await resetAuthPasswords([{ uid: s.authUid, password: newPassword }]);
-  if(!results || !results[0] || !results[0].ok){
-    showNotif('Error cambiando la contraseña de acceso.','error');
-    return;
-  }
-  const sent = await sendPasswordEmail(s.email, s.name, s.carnet, newPassword);
-  showNotif(sent ? 'Nueva contraseña enviada a ' + s.email + '.' : 'Contraseña cambiada, pero falló el envío del correo — nueva contraseña: ' + newPassword, sent ? 'success' : 'error');
+  showConfirmModal('¿Generar y reenviar una nueva contraseña a ' + s.name + ' (' + s.email + ')?',async()=>{
+    const newPassword = generatePassword();
+    const results = await resetAuthPasswords([{ uid: s.authUid, password: newPassword }]);
+    if(!results || !results[0] || !results[0].ok){
+      showNotif('Error cambiando la contraseña de acceso.','error');
+      return;
+    }
+    const sent = await sendPasswordEmail(s.email, s.name, s.carnet, newPassword);
+    showNotif(sent ? 'Nueva contraseña enviada a ' + s.email + '.' : 'Contraseña cambiada, pero falló el envío del correo — nueva contraseña: ' + newPassword, sent ? 'success' : 'error');
+  });
 }
 
 // Igual que resendPassword() pero para todo el padrón a la vez.
@@ -1603,60 +1639,61 @@ async function resendPasswordAll(){
   const students = await getStudents();
   const withAuth = students.filter(s=>s.authUid);
   if(!withAuth.length){ showNotif('No hay estudiantes con cuenta de acceso vinculada.','error'); return; }
-  if(!confirm('¿Generar y reenviar una nueva contraseña a los ' + withAuth.length + ' estudiantes del padrón?')) return;
+  showConfirmModal('¿Generar y reenviar una nueva contraseña a los ' + withAuth.length + ' estudiantes del padrón?',async()=>{
+    const passwords = {};
+    withAuth.forEach(s => { passwords[s.authUid] = generatePassword(); });
+    const updates = withAuth.map(s => ({ uid: s.authUid, password: passwords[s.authUid] }));
+    const results = await resetAuthPasswords(updates);
+    if(!results){ showNotif('Error cambiando las contraseñas de acceso.','error'); return; }
 
-  const passwords = {};
-  withAuth.forEach(s => { passwords[s.authUid] = generatePassword(); });
-  const updates = withAuth.map(s => ({ uid: s.authUid, password: passwords[s.authUid] }));
-  const results = await resetAuthPasswords(updates);
-  if(!results){ showNotif('Error cambiando las contraseñas de acceso.','error'); return; }
+    const okByUid = {};
+    results.forEach(r => { okByUid[r.uid] = r.ok; });
 
-  const okByUid = {};
-  results.forEach(r => { okByUid[r.uid] = r.ok; });
-
-  let sent=0, failed=0;
-  for(const s of withAuth){
-    if(!okByUid[s.authUid]){ failed++; continue; }
-    const ok = await sendPasswordEmail(s.email, s.name, s.carnet, passwords[s.authUid]);
-    if(ok) sent++; else failed++;
-  }
-  showNotif('Contraseñas reenviadas: ' + sent + ' correos enviados' + (failed ? ', ' + failed + ' con error' : '') + '.', failed ? 'error' : 'success');
+    let sent=0, failed=0;
+    for(const s of withAuth){
+      if(!okByUid[s.authUid]){ failed++; continue; }
+      const ok = await sendPasswordEmail(s.email, s.name, s.carnet, passwords[s.authUid]);
+      if(ok) sent++; else failed++;
+    }
+    showNotif('Contraseñas reenviadas: ' + sent + ' correos enviados' + (failed ? ', ' + failed + ' con error' : '') + '.', failed ? 'error' : 'success');
+  });
 }
 
-async function removeStudent(carnet){
-  if(!confirm('¿Eliminar a este estudiante del padrón?')) return;
-  try{
-    const snap = await getDoc(doc(db,"padron",carnet));
-    const authUid = snap.exists() ? snap.data().authUid : null;
-    await deleteDoc(doc(db,"padron",carnet));
-    const authOk = await deleteAuthAccounts([authUid]);
-    await renderStudents();
-    showNotif(authOk ? 'Estudiante eliminado del padrón.' : 'Estudiante eliminado del padrón. Aviso: no se pudo borrar su cuenta de acceso — si se vuelve a agregar con el mismo correo puede fallar.', authOk ? 'success' : 'error');
-  }catch(e){
-    console.error(e);
-    showNotif('Error eliminando estudiante.','error');
-  }
+function removeStudent(carnet){
+  showConfirmModal('¿Eliminar a este estudiante del padrón?',async()=>{
+    try{
+      const snap = await getDoc(doc(db,"padron",carnet));
+      const authUid = snap.exists() ? snap.data().authUid : null;
+      await deleteDoc(doc(db,"padron",carnet));
+      const authOk = await deleteAuthAccounts([authUid]);
+      await renderStudents();
+      showNotif(authOk ? 'Estudiante eliminado del padrón.' : 'Estudiante eliminado del padrón. Aviso: no se pudo borrar su cuenta de acceso — si se vuelve a agregar con el mismo correo puede fallar.', authOk ? 'success' : 'error');
+    }catch(e){
+      console.error(e);
+      showNotif('Error eliminando estudiante.','error');
+    }
+  });
 }
 
-async function clearStudents(){
-  if(!confirm('¿Limpiar todo el padrón? Se eliminarán TODOS los estudiantes.')) return;
-
-  try{
-    const snap = await getDocs(collection(db,"padron"));
-    const uids = [];
-    const deletes = [];
-    snap.forEach(d=>{
-      uids.push(d.data().authUid);
-      deletes.push(deleteDoc(doc(db,"padron",d.id)));
-    });
-    await Promise.all(deletes);
-    const authOk = await deleteAuthAccounts(uids);
-    await renderStudents();
-    showNotif(authOk ? 'Padrón limpiado.' : 'Padrón limpiado. Aviso: algunas cuentas de acceso pudieron no borrarse.', authOk ? 'success' : 'error');
-  }catch(e){
-    console.error(e);
-    showNotif('Error limpiando padrón.','error');
-  }
+function clearStudents(){
+  showConfirmModal('¿Limpiar todo el padrón? Se eliminarán TODOS los estudiantes.',async()=>{
+    try{
+      const snap = await getDocs(collection(db,"padron"));
+      const uids = [];
+      const deletes = [];
+      snap.forEach(d=>{
+        uids.push(d.data().authUid);
+        deletes.push(deleteDoc(doc(db,"padron",d.id)));
+      });
+      await Promise.all(deletes);
+      const authOk = await deleteAuthAccounts(uids);
+      await renderStudents();
+      showNotif(authOk ? 'Padrón limpiado.' : 'Padrón limpiado. Aviso: algunas cuentas de acceso pudieron no borrarse.', authOk ? 'success' : 'error');
+    }catch(e){
+      console.error(e);
+      showNotif('Error limpiando padrón.','error');
+    }
+  });
 }
 
 async function importCSV(event){

@@ -593,10 +593,12 @@ function renderCard(p){
   var vB=hasVoted?'<span class="badge badge-voted">&#10003; Votado</span>':'';
   // Mientras el proceso sigue activo, no se muestra el conteo de votos ni
   // las mini-barras (ver resultados en vivo podría sesgar a quienes aún
-  // no han votado) — se habilitan automáticamente al cerrarse.
-  var votesMeta=isActive?'':'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>';
+  // no han votado) — se habilitan automáticamente al cerrarse. Excepción:
+  // tipo "abierta", cuyos resultados son públicos y en vivo por diseño.
+  var hideLive=isActive&&p.type!=='abierta';
+  var votesMeta=hideLive?'':'<span style="font-size:12px;color:var(--text2)">'+r.total+'/'+p.quorum+' votos</span>';
   var bars='';
-  if(!isActive){
+  if(!hideLive){
     if(r.mode==='personas'){
       bars=r.candidates.map(function(c,i){
         var cnt=r.counts[c.id]||0;
@@ -743,8 +745,10 @@ function openResults(pid){
   // Mientras el proceso sigue activo (abierto a votar), no se muestran
   // conteos ni gráficos a los estudiantes — ver resultados en vivo podría
   // sesgar a quienes aún no han votado. Se habilitan automáticamente al
-  // cerrarse (TEEUNED → Cerrar).
-  if(p.status==='activa'){
+  // cerrarse (TEEUNED → Cerrar). Excepción: tipo "abierta" — por diseño
+  // sus resultados son públicos, así que se muestran en vivo conforme se
+  // van registrando los votos, sin esperar al cierre.
+  if(p.status==='activa'&&p.type!=='abierta'){
     document.getElementById('res-notice').innerHTML='<div class="info-box info-warn">Esta votación sigue activa. Los resultados estarán disponibles cuando el proceso se cierre.</div>';
     document.getElementById('res-stats').innerHTML='';
     document.getElementById('res-bars').innerHTML='';

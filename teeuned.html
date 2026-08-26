@@ -1268,7 +1268,7 @@ function renderAurScopeList(){
         <input type="checkbox" ${checked?'checked':''} onchange="toggleAurScope('${key}')">
         ${sc.kind==='sede'?'📍 Sede':'🗺️ Región'}: ${sc.name}
       </label>
-      <textarea class="field" style="margin-top:6px;min-height:60px" placeholder="Candidatos, uno por línea" id="aur-cand-${i}" onchange="draftAurCandidates['${key}']=this.value" ${checked?'':'disabled'}>${draftAurCandidates[key]||''}</textarea>
+      <textarea class="field" style="margin-top:6px;min-height:60px" placeholder="Candidatos, uno por línea" id="aur-cand-${i}" onchange="updateAurCandidate('${key}',this.value)" ${checked?'':'disabled'}>${draftAurCandidates[key]||''}</textarea>
     </div>`;
   }).join('');
 }
@@ -1277,7 +1277,16 @@ function toggleAurScope(key){
   else draftAurCandidates[key]='';
   renderAurScopeList();
 }
+// Los manejadores onchange/onclick inline en HTML generado por template
+// strings se ejecutan en el scope GLOBAL (window), no en el del módulo —
+// por eso no pueden tocar "draftAurCandidates" directamente (es una
+// variable de módulo). Se necesita esta función puente, expuesta en
+// window, cuyo cuerpo sí tiene acceso por clausura a la variable real.
+function updateAurCandidate(key,val){
+  draftAurCandidates[key]=val;
+}
 window.toggleAurScope=toggleAurScope;
+window.updateAurCandidate=updateAurCandidate;
 
 async function submitAurCampaign(){
   const errEl=document.getElementById('aur-create-err');

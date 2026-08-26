@@ -1349,11 +1349,15 @@ async function submitAurCampaign(){
     const names=text.split('\n').map(s=>s.trim()).filter(Boolean);
     if(names.length<2){ failed.push(name+' (mínimo 2 candidatos)'); continue; }
     const candidates=names.map((n,i)=>({id:'c'+Date.now()+'_'+i+'_'+Math.random().toString(36).substr(2,4),name:n}));
+    // Si el nombre en el catálogo ya arranca con "Sede"/"Región" (lo usual),
+    // no se repite la palabra en el título/descripción generados.
+    const alreadyPrefixed=new RegExp('^'+(kind==='sede'?'sede':'región'),'i').test(name);
+    const label=alreadyPrefixed?name:(kind==='sede'?'Sede ':'Región ')+name;
     const proc={
       id:'aurp'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
       aurGroupId, scope:{kind,name},
-      title:'Representante Estudiantil AUR — '+(kind==='sede'?'Sede':'Región')+' '+name,
-      description:'Elección de representante estudiantil ante la Asamblea Universitaria Representativa por '+(kind==='sede'?'la Sede':'la Región')+' '+name+'.',
+      title:'Representante Estudiantil AUR — '+label,
+      description:'Elección de representante estudiantil ante la Asamblea Universitaria Representativa por '+label+'.',
       type:'personas', quorum, status:'activa', createdAt:now, endsAt, candidates,
     };
     try{ await guardarProcesoAUR(proc); }catch(e){ console.error(e); failed.push(name+' (error al guardar)'); }

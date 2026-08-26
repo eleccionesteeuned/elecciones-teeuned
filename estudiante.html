@@ -201,6 +201,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
         <button class="btn btn-secondary btn-sm" id="date-filter-clear" style="display:none" onclick="clearDateFilter()">✕ Quitar filtro de fecha</button>
       </div>
       <div id="process-list"></div>
+
+      <div id="aur-section" style="display:none;margin-top:28px">
+        <div class="page-title" style="font-size:19px">🎓 Mis Votaciones AUR</div>
+        <div class="page-subtitle">Elección de representante estudiantil ante la Asamblea Universitaria Representativa para su sede/región</div>
+        <div id="aur-process-list"></div>
+      </div>
     </div>
 
     <div id="pane-vote" style="display:none">
@@ -262,7 +268,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
                 <span style="font-size:11px;opacity:.8">El voto secreto garantiza que su decision es confidencial.</span>
               </div>
               <div class="confirm-actions">
-                <button class="btn btn-primary" onclick="openResults(currentProcId)">Ver Resultados</button>
+                <button class="btn btn-primary" onclick="openResults(currentProcId,currentIsAur)">Ver Resultados</button>
                 <button class="btn btn-secondary" onclick="goHome()">Volver al Inicio</button>
               </div>
             </div>
@@ -450,7 +456,7 @@ window.PALETTE = PALETTE;
 <!-- Script 2 (APP) -->
 <script type="module">
 
-import { cargarProcesos, registrarVoto, groupByDay, startTickers } from "./procesos.js";
+import { cargarProcesos, registrarVoto, groupByDay, startTickers, cargarProcesosAUR, registrarVotoAUR } from "./procesos.js";
 import { auth } from "./firebase.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -460,7 +466,11 @@ var filterStatus='todas';
 var selectedDate='';
 var selectedVote=null;
 var currentProcId=null;
+var currentIsAur=false;
 var processes=[];
+var aurProcesses=[];
+var studentSede=null;
+var studentRegion=null;
 var resChartInstance=null;
 
 // Refresca automáticamente cada 5s los datos y gráficos de votaciones
@@ -537,6 +547,23 @@ document.addEventListener('DOMContentLoaded',function(){
       processes = await cargarProcesos();
       renderDashboard();
       startOpenResultsAutoRefresh();
+
+      // Sede/Región vienen de los custom claims del token de Firebase Auth
+      // (asignados por TEEUNED, no editables por el estudiante). Se fuerza
+      // un refresco del token por si se le asignó sede recién y aún no
+      // había vuelto a iniciar sesión.
+      try{
+        const tokenResult = await auth.currentUser.getIdTokenResult(true);
+        studentSede = tokenResult.claims.sede || null;
+        studentRegion = tokenResult.claims.region || null;
+        const scopeNames = [studentSede, studentRegion].filter(Boolean);
+        if(scopeNames.length){
+          aurProcesses = await cargarProcesosAUR(scopeNames);
+          renderAurSection();
+        }
+      }catch(e){
+        console.error('AUR:', e);
+      }
     }catch(e){
       // Firestore rechaza la lectura si la sesión real de Firebase Auth ya
       // no está activa en este navegador (p.ej. se cerró sesión desde otra
@@ -651,21 +678,44 @@ function renderCard(p){
   var isExpired=isActive&&p.endsAt&&new Date(p.endsAt).getTime()<=Date.now();
   var acts='';
   if(isActive&&!hasVoted&&!isExpired)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\')">&#128499; Votar</button>';
-  acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\',\'summary\')">&#128202; Ver Resultados</button>';
+  acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\')">&#128202; Ver Resultados</button>';
   var clocks=isActive?'<span class="js-elapsed" data-since="'+p.createdAt+'"></span>'+(p.endsAt?'<span class="js-countdown" data-ends="'+p.endsAt+'"></span>':''):'';
   return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'Sin descripción disponible.')+'</div><div class="process-meta">'+sB+tB+votesMeta+vB+clocks+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
 }
 
-function openVote(pid){
+function renderAurSection(){
+  var el=document.getElementById('aur-section');
+  var listEl=document.getElementById('aur-process-list');
+  if(!aurProcesses.length){ el.style.display='none'; return; }
+  el.style.display='block';
+  listEl.innerHTML=aurProcesses.map(renderCardAUR).join('');
+}
+
+function renderCardAUR(p){
+  var isActive=p.status==='activa';
+  var hasVoted=p.votedCarnets.indexOf(session.carnet)!==-1;
+  var sB=isActive?'<span class="badge badge-active">&#9679; Activa</span>':'<span class="badge badge-closed">&#9673; Cerrada</span>';
+  var scB='<span class="badge badge-personas">'+(p.scope.kind==='sede'?'&#128205; ':'&#127757; ')+p.scope.name+'</span>';
+  var vB=hasVoted?'<span class="badge badge-voted">&#10003; Votado</span>':'';
+  var isExpired=isActive&&p.endsAt&&new Date(p.endsAt).getTime()<=Date.now();
+  var acts='';
+  if(isActive&&!hasVoted&&!isExpired)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\',true)">&#128499; Votar</button>';
+  acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\',true)">&#128202; Ver Resultados</button>';
+  var clocks=isActive?'<span class="js-elapsed" data-since="'+p.createdAt+'"></span>'+(p.endsAt?'<span class="js-countdown" data-ends="'+p.endsAt+'"></span>':''):'';
+  return '<div class="process-card'+(isActive?'':' closed-process')+' personas-process"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'')+'</div><div class="process-meta">'+sB+scB+vB+clocks+'</div></div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
+}
+
+function openVote(pid,isAur){
+  var list=isAur?aurProcesses:processes;
   var p=null;
-  for(var i=0;i<processes.length;i++){if(processes[i].id===pid){p=processes[i];break;}}
+  for(var i=0;i<list.length;i++){if(list[i].id===pid){p=list[i];break;}}
   if(!p)return;
   if(p.endsAt&&new Date(p.endsAt).getTime()<=Date.now()){
     showNotif('El tiempo para votar en este proceso ya venció.','error');
-    renderDashboard();
+    if(isAur) renderAurSection(); else renderDashboard();
     return;
   }
-  currentProcId=pid;selectedVote=null;
+  currentProcId=pid;currentIsAur=!!isAur;selectedVote=null;
   setVoteStep('choose');
   document.getElementById('vote-proc-title').textContent=p.title;
   document.getElementById('vote-desc-box').innerHTML='<strong>Asunto en votacion:</strong> '+p.description;
@@ -686,8 +736,9 @@ function openVote(pid){
 function selectVote(val,el){
   selectedVote=val;
   document.querySelectorAll('.vote-option').forEach(function(o){o.className='vote-option';});
+  var list=currentIsAur?aurProcesses:processes;
   var p=null;
-  for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
+  for(var i=0;i<list.length;i++){if(list[i].id===currentProcId){p=list[i];break;}}
   if(p&&p.type==='personas')el.classList.add('sel-persona');
   else if(val==='a_favor')el.classList.add('sel-favor');
   else if(val==='en_contra')el.classList.add('sel-contra');
@@ -697,8 +748,9 @@ function selectVote(val,el){
 
 function goVoteConfirm(){
   if(!selectedVote)return;
+  var list=currentIsAur?aurProcesses:processes;
   var p=null;
-  for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
+  for(var i=0;i<list.length;i++){if(list[i].id===currentProcId){p=list[i];break;}}
   var icon='&#128499;',title='',choiceName='';
   if(p&&p.type==='personas'){
     var cand=null;for(var j=0;j<p.candidates.length;j++){if(p.candidates[j].id===selectedVote){cand=p.candidates[j];break;}}
@@ -727,8 +779,9 @@ async function submitVote(){
     doLogoutSecure();
     return;
   }
+  var list=currentIsAur?aurProcesses:processes;
   var p=null;
-  for(var i=0;i<processes.length;i++){if(processes[i].id===currentProcId){p=processes[i];break;}}
+  for(var i=0;i<list.length;i++){if(list[i].id===currentProcId){p=list[i];break;}}
   // Se usa el objeto "student" ya verificado contra Firestore (currentStudent,
   // obtenido en DOMContentLoaded vía getStudentByCarnet) en vez de leer
   // carnet/nombre directamente de la caché en localStorage (editable por el
@@ -740,7 +793,8 @@ async function submitVote(){
   var nv={id:'v'+Date.now(),voterCarnet:voterCarnet,voterName:voterName,voterHash:hash8(voterCarnet),choice:selectedVote,ts:new Date().toISOString()};
 
   try{
-    await registrarVoto(currentProcId, nv);
+    if(currentIsAur) await registrarVotoAUR(currentProcId, nv);
+    else await registrarVoto(currentProcId, nv);
   }catch(e){
     if(e.message==='ya-voto'){
       showNotif('Usted ya emitio un voto en este proceso.','error');
@@ -770,11 +824,12 @@ async function submitVote(){
   showNotif('Voto emitido correctamente.');
 }
 
-function openResults(pid){
+function openResults(pid,isAur){
+  var list=isAur?aurProcesses:processes;
   var p=null;
-  for(var i=0;i<processes.length;i++){if(processes[i].id===pid){p=processes[i];break;}}
+  for(var i=0;i<list.length;i++){if(list[i].id===pid){p=list[i];break;}}
   if(!p)return;
-  currentProcId=pid;
+  currentProcId=pid;currentIsAur=!!isAur;
   document.getElementById('res-title').textContent=p.title||'Proceso sin título';
   document.getElementById('res-desc').textContent=p.description||'Sin descripción disponible.';
   var r=getResults(p);
@@ -798,7 +853,8 @@ function openResults(pid){
   }
 
   var notice='';
-  if(isPersonas)notice='<div class="info-box info-purple">Votacion de Personas - Siempre Secreta. Solo se muestran resultados finales agregados.</div>';
+  if(p.scope)notice='<div class="info-box info-purple">Votación AUR — '+(p.scope.kind==='sede'?'Sede':'Región')+': '+p.scope.name+'. Siempre secreta.</div>';
+  else if(isPersonas)notice='<div class="info-box info-purple">Votacion de Personas - Siempre Secreta. Solo se muestran resultados finales agregados.</div>';
   else if(p.type==='cerrada')notice='<div class="info-box info-info">Votacion Cerrada. Solo se muestran resultados agregados.</div>';
   else notice='<div class="info-box info-warn">Votacion Abierta. Resultados publicos.</div>';
   document.getElementById('res-notice').innerHTML=notice;

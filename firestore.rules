@@ -60,5 +60,50 @@ service cloud.firestore {
         allow update, delete: if false;
       }
     }
+
+    // Catálogo de Sedes/Regiones para Votaciones AUR (Asamblea Universitaria
+    // Representativa). Editable solo por TEEUNED; legible por cualquier
+    // autenticado (lo usa el panel de administración para los formularios).
+    match /config/{docId} {
+      allow read: if request.auth != null;
+      allow write: if isTeeuned();
+    }
+
+    // Votaciones AUR: una elección por Sede y una por Región. A diferencia
+    // de /procesos, aquí la lectura NO está abierta a cualquier autenticado
+    // — un estudiante solo puede leer (y por tanto solo llega a saber que
+    // existen) las elecciones de SU sede y SU región, verificado con los
+    // custom claims "sede"/"region" del token de Firebase Auth (asignados
+    // por netlify/functions/set-student-scope.js al agregar/editar un
+    // estudiante en el padrón — nunca por el cliente). TEEUNED/Fiscalía ven
+    // todo, para poder administrar y supervisar cualquier sede/región.
+    match /procesos_aur/{procesoId} {
+      allow read: if isStaff() || (
+        request.auth != null &&
+        (resource.data.scope.name == request.auth.token.sede ||
+         resource.data.scope.name == request.auth.token.region)
+      );
+      allow create, update: if isTeeuned();
+      allow delete: if false;
+
+      match /votos/{carnet} {
+        // La lectura agregada (para calcular resultados) se limita a
+        // quienes ya tienen acceso a la elección padre (mismo sede/región,
+        // o personal) — a diferencia de /procesos/votos, que está abierto
+        // a cualquier autenticado.
+        allow read: if isStaff() || (
+          request.auth != null &&
+          (get(/databases/$(database)/documents/procesos_aur/$(procesoId)).data.scope.name == request.auth.token.sede ||
+           get(/databases/$(database)/documents/procesos_aur/$(procesoId)).data.scope.name == request.auth.token.region)
+        );
+        allow create: if request.auth != null
+          && get(/databases/$(database)/documents/padron/$(carnet)).data.authUid == request.auth.uid
+          && request.resource.data.voterCarnet == carnet
+          && !exists(/databases/$(database)/documents/procesos_aur/$(procesoId)/votos/$(carnet))
+          && (get(/databases/$(database)/documents/procesos_aur/$(procesoId)).data.scope.name == request.auth.token.sede
+              || get(/databases/$(database)/documents/procesos_aur/$(procesoId)).data.scope.name == request.auth.token.region);
+        allow update, delete: if false;
+      }
+    }
   }
 }

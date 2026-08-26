@@ -432,6 +432,7 @@ function showNotif(msg,type='success'){
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="showPane('students')">👥 Padrón</button>
+          <button class="btn btn-primary btn-sm" onclick="showPane('aur')">🎓 AUR</button>
           <button class="btn btn-gold" onclick="showPane('create')">+ Nuevo Proceso</button>
         </div>
       </div>
@@ -544,7 +545,7 @@ function showNotif(msg,type='success'){
             <div class="upload-zone" onclick="document.getElementById('file-csv').click()">
               <div class="upload-zone-icon">📂</div>
               <p><strong>Clic para seleccionar archivo CSV</strong></p>
-              <p style="margin-top:5px">Formato: <code style="background:var(--cream2);padding:2px 6px;border-radius:3px;font-size:11px">carnet,nombre,email</code></p>
+              <p style="margin-top:5px">Formato: <code style="background:var(--cream2);padding:2px 6px;border-radius:3px;font-size:11px">carnet,nombre,email,sede</code> (sede es opcional, solo para Votaciones AUR)</p>
               <p style="margin-top:5px;font-size:11px;color:var(--text2)">El correo es obligatorio: se usa para crear el acceso del estudiante. Las filas sin correo válido se omiten.</p>
             </div>
             <input type="file" id="file-csv" accept=".csv,.txt" style="display:none" onchange="importCSV(event)">
@@ -557,7 +558,10 @@ function showNotif(msg,type='success'){
               <input class="field" type="email" id="st-email" placeholder="Correo electrónico * (ej: est@uned.cr)" style="flex:2">
               <input class="field" type="text" id="st-pass" placeholder="Contraseña (opcional, mín. 6)" style="flex:1;min-width:140px">
             </div>
-            <div class="field-hint" style="margin-top:-4px;margin-bottom:8px">Si deja la contraseña en blanco, se genera una automáticamente.</div>
+            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
+              <select class="field" id="st-sede" style="flex:1"><option value="">Sede (opcional — para Votaciones AUR)</option></select>
+            </div>
+            <div class="field-hint" style="margin-top:-4px;margin-bottom:8px">Si deja la contraseña en blanco, se genera una automáticamente. La Sede solo es necesaria si el estudiante debe participar en Votaciones AUR — gestione el catálogo de sedes en la pestaña "🎓 AUR".</div>
             <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
               <button class="btn btn-primary btn-sm" onclick="addStudent()" style="white-space:nowrap">+ Agregar</button>
             </div>
@@ -579,7 +583,7 @@ function showNotif(msg,type='success'){
           <div style="max-height:480px;overflow-y:auto">
             <table>
               <thead>
-                <tr><th>#</th><th>Carnet</th><th>Nombre</th><th>Correo</th><th></th></tr>
+                <tr><th>#</th><th>Carnet</th><th>Nombre</th><th>Correo</th><th>Sede</th><th></th></tr>
               </thead>
               <tbody id="st-tbody"></tbody>
             </table>
@@ -589,8 +593,76 @@ function showNotif(msg,type='success'){
       </div>
     </div>
 
+    <!-- ── AUR ── -->
+    <div id="pane-aur" style="display:none">
+      <div class="page-title">Votaciones AUR</div>
+      <div class="page-subtitle" style="margin-bottom:18px">Elección de representantes estudiantiles ante la Asamblea Universitaria Representativa — una votación por Sede y una por Región. Solo la ven quienes pertenecen a esa sede/región.</div>
+
+      <div class="card">
+        <div class="card-header" style="cursor:pointer" onclick="toggleAurCatalog()">
+          <span class="card-header-title">📍 Catálogo de Sedes y Regiones</span>
+          <span id="aur-catalog-toggle" style="font-size:12px;color:var(--text2)">▼ Mostrar</span>
+        </div>
+        <div class="card-body" id="aur-catalog-body" style="display:none">
+          <div class="field-hint" style="margin-bottom:10px">Defina aquí las sedes reconocidas por el sistema y, opcionalmente, a qué región pertenece cada una (varias sedes pueden compartir región). Una sede sin región solo tendrá su propia votación de sede.</div>
+          <div id="aur-catalog-list" style="margin-bottom:10px"></div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <input class="field" type="text" id="aur-new-sede" placeholder="Nombre de la sede" style="flex:1;min-width:140px">
+            <input class="field" type="text" id="aur-new-region" placeholder="Región (opcional)" style="flex:1;min-width:140px">
+            <button class="btn btn-secondary btn-sm" onclick="addCatalogSede()">+ Agregar</button>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="saveCatalog()">💾 Guardar catálogo</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-header-title">+ Nueva Votación AUR</span></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="field-label">Quórum máximo por elección *</label>
+              <input class="field" type="number" id="aur-quorum" min="1" placeholder="Ej: 50">
+            </div>
+            <div class="form-group">
+              <label class="field-label">Cronómetro de cierre (opcional, aplica a todas)</label>
+              <input class="field" type="datetime-local" id="aur-ends">
+            </div>
+          </div>
+          <div class="field-hint" style="margin-bottom:10px">Marque las sedes/regiones que participan en esta ronda y escriba sus candidatos (uno por línea). Las que deje sin candidatos no se crean.</div>
+          <div id="aur-scope-list"></div>
+          <div class="field-error" id="aur-create-err"></div>
+          <button class="btn btn-gold" style="margin-top:10px" onclick="submitAurCampaign()">✓ Crear Votaciones AUR</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-title">Votaciones AUR Creadas</span>
+          <span class="badge badge-active" id="aur-count-badge">0</span>
+        </div>
+        <div class="card-body">
+          <div id="aur-process-list"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
+</div>
+
+<!-- Modal editar sede de un estudiante -->
+<div id="sede-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSedeModal()">
+  <div class="modal-box">
+    <div class="modal-title">📍 Sede del estudiante</div>
+    <div class="modal-sub" id="sede-modal-student"></div>
+    <div class="field-hint" style="margin:6px 0 10px">Usada solo para Votaciones AUR. Al guardar, se actualiza su cuenta de acceso — puede tardar unos minutos en aplicar si el estudiante ya tiene sesión iniciada.</div>
+    <label class="field-label">Sede</label>
+    <select class="field" id="sede-modal-select"><option value="">Sin asignar</option></select>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="closeSedeModal()">Cancelar</button>
+      <button class="btn btn-gold btn-sm" onclick="applySedeModal()">✓ Guardar</button>
+    </div>
+  </div>
 </div>
 
 <!-- Modal cronómetro de cierre -->
@@ -630,15 +702,19 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { cargarProcesos, guardarProceso, cerrarProceso, groupByDay, startTickers } from "./procesos.js";
+import { cargarProcesos, guardarProceso, cerrarProceso, groupByDay, startTickers, getAurCatalog, saveAurCatalog, cargarProcesosAUR, guardarProcesoAUR, cerrarProcesoAUR } from "./procesos.js";
 
 let session=null;
 let filterStatus='todas';
 let selectedDate='';
 let resultsMode='summary';
 let currentProcId=null;
+let currentIsAur=false;
 let draftCandidates=[];
 let processes=[];
+let aurProcesses=[];
+let aurCatalog=[];
+let draftAurCandidates={};
 let resChartInstance=null;
 
 function renderResultsChart(labels,dataPct,colors){
@@ -695,13 +771,14 @@ async function doLogoutSecure(){
 window.doLogout = doLogoutSecure;
 
 function showPane(name){
-  ['dashboard','results','create','students'].forEach(p=>{
+  ['dashboard','results','create','students','aur'].forEach(p=>{
     document.getElementById('pane-'+p).style.display=p===name?'block':'none';
   });
   document.getElementById('btn-home').style.display=name==='dashboard'?'none':'inline-block';
   if(name==='students') renderStudents();
   if(name==='create') resetCreateForm();
   if(name==='dashboard') renderDashboard();
+  if(name==='aur') initAurPane();
 }
 
 // ---
@@ -845,10 +922,12 @@ function renderCard(p){
 // votes/votedCarnets, recalculados siempre) por lo que se le pasa el
 // proceso ya cargado con solo endsAt modificado.
 let timerModalPid=null;
-function setProcessTimer(pid){
-  const p=processes.find(x=>x.id===pid);
+let timerModalIsAur=false;
+function setProcessTimer(pid,isAur){
+  const p=(isAur?aurProcesses:processes).find(x=>x.id===pid);
   if(!p) return;
   timerModalPid=pid;
+  timerModalIsAur=!!isAur;
   document.getElementById('timer-modal-proc').textContent=p.title||'Proceso sin título';
   document.getElementById('timer-modal-mins').value='';
   const current=p.endsAt?new Date(p.endsAt):null;
@@ -863,8 +942,9 @@ function closeTimerModal(){
 }
 async function applyProcessTimer(clear){
   const pid=timerModalPid;
+  const isAur=timerModalIsAur;
   if(!pid) return;
-  const p=processes.find(x=>x.id===pid);
+  const p=(isAur?aurProcesses:processes).find(x=>x.id===pid);
   if(!p) return;
   let endsAt=null;
   if(clear!==null){
@@ -873,10 +953,10 @@ async function applyProcessTimer(clear){
     endsAt=new Date(Date.now()+mins*60000).toISOString();
   }
   try{
-    await guardarProceso({...p,endsAt});
+    if(isAur) await guardarProcesoAUR({...p,endsAt}); else await guardarProceso({...p,endsAt});
     closeTimerModal();
     showNotif(endsAt?'Cronómetro programado.':'Cronómetro removido.');
-    await renderDashboard();
+    if(isAur) await renderAurPane(); else await renderDashboard();
   }catch(e){
     console.error(e);
     showNotif('Error al actualizar el cronómetro.','error');
@@ -886,24 +966,25 @@ window.setProcessTimer=setProcessTimer;
 window.closeTimerModal=closeTimerModal;
 window.applyProcessTimer=applyProcessTimer;
 
-async function closeProcess(pid){
+async function closeProcess(pid,isAur){
   if(!confirm('¿Confirma cerrar este proceso? Esta acción no puede revertirse.')) return;
   try{
-    await cerrarProceso(pid);
+    if(isAur) await cerrarProcesoAUR(pid); else await cerrarProceso(pid);
     showNotif('Proceso cerrado exitosamente.');
   }catch(e){
     showNotif('Error al cerrar el proceso.','error'); return;
   }
-  if(currentProcId===pid) await openResults(pid,'summary');
-  else await renderDashboard();
+  if(currentProcId===pid) await openResults(pid,'summary',isAur);
+  else if(isAur) await renderAurPane(); else await renderDashboard();
 }
 
 // ---
-async function openResults(pid,mode){
-  processes=await cargarProcesos();
-  const p=processes.find(x=>x.id===pid);
+async function openResults(pid,mode,isAur){
+  if(isAur) aurProcesses=await cargarProcesosAUR();
+  else processes=await cargarProcesos();
+  const p=(isAur?aurProcesses:processes).find(x=>x.id===pid);
   if(!p) return;
-  currentProcId=pid; resultsMode=mode||'summary';
+  currentProcId=pid; resultsMode=mode||'summary'; currentIsAur=!!isAur;
   renderResults(p); showPane('results');
 }
 
@@ -914,7 +995,8 @@ function renderResults(p){
   document.getElementById('res-desc').textContent=p.description||'Sin descripción disponible.';
 
   let notice='';
-  if(isPersonas) notice='<div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Solo resultados agregados.</div>';
+  if(p.scope) notice=`<div class="info-box info-purple">🎓 <strong>Votación AUR — ${p.scope.kind==='sede'?'Sede':'Región'}: ${p.scope.name}.</strong> Siempre secreta. Solo resultados agregados.</div>`;
+  else if(isPersonas) notice='<div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Solo resultados agregados.</div>';
   else if(p.type==='abierta') notice='<div class="info-box info-warn">🔓 <strong>Votación Abierta:</strong> Datos individuales visibles.</div>';
   else notice='<div class="info-box info-info">🔒 <strong>Votación Cerrada:</strong> Solo resultados agregados.</div>';
   document.getElementById('res-notice').innerHTML=notice;
@@ -924,8 +1006,8 @@ function renderResults(p){
     actHTML+=`<button class="btn btn-sm ${resultsMode==='summary'?'btn-primary':'btn-secondary'}" onclick="resultsMode='summary';renderResults(processes.find(x=>x.id===currentProcId))">Solo Resultados</button>`;
     actHTML+=`<button class="btn btn-sm ${resultsMode==='detail'?'btn-primary':'btn-secondary'}" onclick="resultsMode='detail';renderResults(processes.find(x=>x.id===currentProcId))">Por Votante</button>`;
   }
-  actHTML+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}')">⬇ Excel</button>`;
-  if(p.status==='activa') actHTML+=`<button class="btn btn-danger btn-sm" onclick="closeProcess('${p.id}')">🔒 Cerrar</button>`;
+  actHTML+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}',${!!currentIsAur})">⬇ Excel</button>`;
+  if(p.status==='activa') actHTML+=`<button class="btn btn-danger btn-sm" onclick="closeProcess('${p.id}',${!!currentIsAur})">🔒 Cerrar</button>`;
   document.getElementById('res-actions').innerHTML=actHTML;
 
   const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
@@ -964,8 +1046,8 @@ function renderResults(p){
 }
 
 // ---
-function downloadExcel(pid){
-  const p=processes.find(x=>x.id===pid);
+function downloadExcel(pid,isAur){
+  const p=(isAur?aurProcesses:processes).find(x=>x.id===pid);
   if(!p) return;
   const r=getResults(p);
   const isPersonas=p.type==='personas';
@@ -973,7 +1055,7 @@ function downloadExcel(pid){
   const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
   const rows=[['SISTEMA DE VOTACIÓN ELECTRÓNICA — FEUNED / TEEUNED'],[],
     ['Proceso',p.title||'Sin título'],['Descripción',p.description||'Sin descripción disponible.'],
-    ['Tipo',isPersonas?'Personas (Siempre Secreta)':p.type==='abierta'?'Abierta':'Cerrada'],
+    ['Tipo',p.scope?`AUR — ${p.scope.kind==='sede'?'Sede':'Región'}: ${p.scope.name}`:isPersonas?'Personas (Siempre Secreta)':p.type==='abierta'?'Abierta':'Cerrada'],
     ['Estado',p.status==='activa'?'Activa':'Cerrada'],
     ['Creado',fmtDate(p.createdAt)],[],
     ['QUÓRUM','VOTOS EMITIDOS','PARTICIPACIÓN'],[p.quorum,r.total,part+'%'],[],
@@ -1044,6 +1126,8 @@ async function submitCreate(){
 // ============================
 async function renderStudents(){
   const students = await getStudents();
+  await ensureAurCatalogLoaded();
+  populateSedeSelects();
 
   document.getElementById('st-count-badge').textContent =
     students.length + ' estudiante' + (students.length !== 1 ? 's' : '');
@@ -1053,12 +1137,224 @@ async function renderStudents(){
       <td style="color:var(--text2);font-size:12px">${i+1}</td>
       <td class="mono">${s.carnet}</td><td>${s.name}</td>
       <td class="mono" style="font-size:11px">${s.email||'<span style="color:var(--text3);font-style:italic">Sin correo</span>'}</td>
+      <td style="font-size:12px">${s.sede||'<span style="color:var(--text3);font-style:italic">—</span>'}</td>
       <td style="white-space:nowrap">
+        <button class="btn btn-sm" style="padding:3px 8px" title="Sede (Votaciones AUR)" onclick="editSede('${s.carnet}')">📍</button>
         <button class="btn btn-sm" style="padding:3px 8px" title="Reenviar contraseña" onclick="resendPassword('${s.carnet}')">🔑</button>
         <button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="removeStudent('${s.carnet}')">✕</button>
       </td>
     </tr>`).join('')
-    : '<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
+    : '<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
+}
+
+// ============================
+// VOTACIONES AUR
+// ============================
+async function ensureAurCatalogLoaded(){
+  if(!aurCatalog.length){
+    try{ aurCatalog=await getAurCatalog(); }catch(e){ console.error(e); aurCatalog=[]; }
+  }
+}
+function populateSedeSelects(){
+  const opts='<option value="">Sin asignar</option>'+aurCatalog.map(s=>`<option value="${s.name}">${s.name}${s.region?' — '+s.region:''}</option>`).join('');
+  const stSel=document.getElementById('st-sede');
+  if(stSel) stSel.innerHTML='<option value="">Sede (opcional — para Votaciones AUR)</option>'+aurCatalog.map(s=>`<option value="${s.name}">${s.name}${s.region?' — '+s.region:''}</option>`).join('');
+  const modalSel=document.getElementById('sede-modal-select');
+  if(modalSel) modalSel.innerHTML=opts;
+}
+
+let sedeModalCarnet=null;
+async function editSede(carnet){
+  await ensureAurCatalogLoaded();
+  populateSedeSelects();
+  const students=await getStudents();
+  const s=students.find(x=>x.carnet===carnet);
+  if(!s) return;
+  sedeModalCarnet=carnet;
+  document.getElementById('sede-modal-student').textContent=s.name+' ('+s.carnet+')';
+  document.getElementById('sede-modal-select').value=s.sede||'';
+  document.getElementById('sede-modal').style.display='flex';
+}
+function closeSedeModal(){
+  document.getElementById('sede-modal').style.display='none';
+  sedeModalCarnet=null;
+}
+async function applySedeModal(){
+  const carnet=sedeModalCarnet;
+  if(!carnet) return;
+  const sede=document.getElementById('sede-modal-select').value||null;
+  try{
+    const snap=await getDoc(doc(db,"padron",carnet));
+    if(!snap.exists()) return;
+    const s=snap.data();
+    await setDoc(doc(db,"padron",carnet),{...s,sede});
+    if(s.authUid) await setStudentScopes([{uid:s.authUid,sede}]);
+    closeSedeModal();
+    showNotif('Sede actualizada.');
+    await renderStudents();
+  }catch(e){
+    console.error(e);
+    showNotif('Error actualizando la sede.','error');
+  }
+}
+window.editSede=editSede;
+window.closeSedeModal=closeSedeModal;
+window.applySedeModal=applySedeModal;
+
+function toggleAurCatalog(){
+  const body=document.getElementById('aur-catalog-body');
+  const lbl=document.getElementById('aur-catalog-toggle');
+  const isOpen=body.style.display!=='none';
+  body.style.display=isOpen?'none':'block';
+  lbl.textContent=isOpen?'▼ Mostrar':'▲ Ocultar';
+}
+function renderCatalogList(){
+  const el=document.getElementById('aur-catalog-list');
+  el.innerHTML=aurCatalog.length?aurCatalog.map((s,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">
+    <span style="flex:1"><strong>${s.name}</strong>${s.region?' — '+s.region:' — <span style="color:var(--text3);font-style:italic">sin región</span>'}</span>
+    <button class="btn btn-danger btn-sm" style="padding:2px 8px" onclick="removeCatalogSede(${i})">✕</button>
+  </div>`).join('') : '<div style="color:var(--text2);font-size:13px;padding:8px 0">Catálogo vacío — agregue al menos una sede.</div>';
+}
+function addCatalogSede(){
+  const nameEl=document.getElementById('aur-new-sede');
+  const regionEl=document.getElementById('aur-new-region');
+  const name=nameEl.value.trim();
+  const region=regionEl.value.trim()||null;
+  if(!name) return;
+  if(aurCatalog.some(s=>s.name.toLowerCase()===name.toLowerCase())){
+    showNotif('Esa sede ya existe en el catálogo.','error'); return;
+  }
+  aurCatalog.push({name,region});
+  nameEl.value=''; regionEl.value='';
+  renderCatalogList();
+  renderAurScopeList();
+}
+function removeCatalogSede(i){
+  aurCatalog.splice(i,1);
+  renderCatalogList();
+  renderAurScopeList();
+}
+async function saveCatalog(){
+  try{
+    await saveAurCatalog(aurCatalog);
+    showNotif('Catálogo guardado.');
+    populateSedeSelects();
+  }catch(e){
+    console.error(e);
+    showNotif('Error guardando el catálogo.','error');
+  }
+}
+window.toggleAurCatalog=toggleAurCatalog;
+window.addCatalogSede=addCatalogSede;
+window.removeCatalogSede=removeCatalogSede;
+window.saveCatalog=saveCatalog;
+
+function renderAurScopeList(){
+  const el=document.getElementById('aur-scope-list');
+  const regions=[...new Set(aurCatalog.map(s=>s.region).filter(Boolean))];
+  const scopes=[
+    ...aurCatalog.map(s=>({kind:'sede',name:s.name})),
+    ...regions.map(r=>({kind:'region',name:r})),
+  ];
+  if(!scopes.length){
+    el.innerHTML='<div class="info-box info-warn">Agregue sedes al catálogo arriba antes de crear una votación AUR.</div>';
+    return;
+  }
+  el.innerHTML=scopes.map((sc,i)=>{
+    const key=sc.kind+'::'+sc.name;
+    const checked=draftAurCandidates[key]!==undefined;
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;cursor:pointer">
+        <input type="checkbox" ${checked?'checked':''} onchange="toggleAurScope('${key}')">
+        ${sc.kind==='sede'?'📍 Sede':'🗺️ Región'}: ${sc.name}
+      </label>
+      <textarea class="field" style="margin-top:6px;min-height:60px" placeholder="Candidatos, uno por línea" id="aur-cand-${i}" onchange="draftAurCandidates['${key}']=this.value" ${checked?'':'disabled'}>${draftAurCandidates[key]||''}</textarea>
+    </div>`;
+  }).join('');
+}
+function toggleAurScope(key){
+  if(draftAurCandidates[key]!==undefined) delete draftAurCandidates[key];
+  else draftAurCandidates[key]='';
+  renderAurScopeList();
+}
+window.toggleAurScope=toggleAurScope;
+
+async function submitAurCampaign(){
+  const errEl=document.getElementById('aur-create-err');
+  errEl.style.display='none';
+  const quorum=parseInt(document.getElementById('aur-quorum').value);
+  if(!quorum||quorum<=0){
+    errEl.textContent='Ingrese un quórum máximo válido.';
+    errEl.style.display='block';return;
+  }
+  const endsRaw=document.getElementById('aur-ends').value;
+  const endsAt=endsRaw?new Date(endsRaw).toISOString():null;
+  const entries=Object.entries(draftAurCandidates).filter(([k,v])=>v.trim());
+  if(!entries.length){
+    errEl.textContent='Marque al menos una sede/región y escriba sus candidatos.';
+    errEl.style.display='block';return;
+  }
+  const aurGroupId='aurg'+Date.now();
+  const now=new Date().toISOString();
+  const failed=[];
+  for(const [key,text] of entries){
+    const [kind,name]=key.split('::');
+    const names=text.split('\n').map(s=>s.trim()).filter(Boolean);
+    if(names.length<2){ failed.push(name+' (mínimo 2 candidatos)'); continue; }
+    const candidates=names.map((n,i)=>({id:'c'+Date.now()+'_'+i+'_'+Math.random().toString(36).substr(2,4),name:n}));
+    const proc={
+      id:'aurp'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
+      aurGroupId, scope:{kind,name},
+      title:'Representante Estudiantil AUR — '+(kind==='sede'?'Sede':'Región')+' '+name,
+      description:'Elección de representante estudiantil ante la Asamblea Universitaria Representativa por '+(kind==='sede'?'la Sede':'la Región')+' '+name+'.',
+      type:'personas', quorum, status:'activa', createdAt:now, endsAt, candidates,
+    };
+    try{ await guardarProcesoAUR(proc); }catch(e){ console.error(e); failed.push(name+' (error al guardar)'); }
+  }
+  draftAurCandidates={};
+  document.getElementById('aur-quorum').value='';
+  document.getElementById('aur-ends').value='';
+  renderAurScopeList();
+  showNotif(failed.length?('Creadas con '+failed.length+' error(es): '+failed.join(', ')):'Votaciones AUR creadas correctamente.', failed.length?'error':'success');
+  await renderAurPane();
+}
+window.submitAurCampaign=submitAurCampaign;
+
+async function initAurPane(){
+  await ensureAurCatalogLoaded();
+  renderCatalogList();
+  renderAurScopeList();
+  await renderAurPane();
+}
+
+async function renderAurPane(){
+  aurProcesses=await cargarProcesosAUR();
+  document.getElementById('aur-count-badge').textContent=aurProcesses.length;
+  const listEl=document.getElementById('aur-process-list');
+  listEl.innerHTML=aurProcesses.length
+    ? aurProcesses.map(renderCardAUR).join('')
+    : '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Sin votaciones AUR todavía.</div></div>';
+}
+
+function renderCardAUR(p){
+  const r=getResults(p);
+  const isActive=p.status==='activa';
+  const sB=isActive?'<span class="badge badge-active">● Activa</span>':'<span class="badge badge-closed">◉ Cerrada</span>';
+  const scB=`<span class="badge badge-personas">${p.scope.kind==='sede'?'📍':'🗺️'} ${p.scope.name}</span>`;
+  const bars=r.candidates.map((c,i)=>{const cnt=r.counts[c.id]||0;return`<div class="mini-bar-row"><span class="mini-bar-label">${c.name}</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct(cnt)}%;background:${PALETTE[i%PALETTE.length]}"></div></div><span class="mini-bar-count" style="color:${PALETTE[i%PALETTE.length]}">${cnt}</span></div>`;}).join('');
+  let acts=`<button class="btn btn-primary btn-sm" onclick="openResults('${p.id}','summary',true)">📊 Resultados</button>`;
+  acts+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}',true)">⬇ Excel</button>`;
+  if(isActive) acts+=`<button class="btn btn-sm" onclick="setProcessTimer('${p.id}',true)">⏱ Cronómetro</button>`;
+  if(isActive) acts+=`<button class="btn btn-danger btn-sm" onclick="closeProcess('${p.id}',true)">🔒 Cerrar</button>`;
+  const clocks=isActive?`<span class="js-elapsed" data-since="${p.createdAt}"></span>${p.endsAt?`<span class="js-countdown" data-ends="${p.endsAt}"></span>`:''}`:'';
+  return`<div class="process-card${!isActive?' closed-process':''} personas-process">
+    <div class="process-card-top">
+      <div style="flex:1;min-width:160px"><div class="process-title">${p.title||'Proceso sin título'}</div><div class="process-desc">${p.description||''}</div>
+      <div class="process-meta">${sB}${scB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span>${clocks}</div></div>
+      <div class="mini-bars">${bars}</div>
+    </div>
+    <div class="process-actions">${acts}<span class="process-date">Creado: ${fmtDateShort(p.createdAt)}</span></div>
+  </div>`;
 }
 
 async function addStudent(){
@@ -1130,9 +1426,12 @@ async function addStudent(){
     }
   }
 
+  const sede=document.getElementById('st-sede').value||null;
   try{
-    await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
+    await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid,sede});
+    if(sede) await setStudentScopes([{uid,sede}]);
     ['st-carnet','st-name','st-email','st-pass'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('st-sede').value='';
     await renderStudents();
 
     const sent = await sendPasswordEmail(email, name, carnet, tempPassword);
@@ -1184,6 +1483,28 @@ async function deleteAuthAccounts(uids, emails=[]){
     return true;
   }catch(e){
     console.error('delete-student:', e);
+    return false;
+  }
+}
+
+// Asigna la Sede (y su Región, resuelta en el servidor desde el catálogo)
+// de uno o varios estudiantes como custom claims — vía la función
+// serverless con Admin SDK, ya que el cliente no puede fijar sus propios
+// claims. updates: [{uid, sede}]. No bloquea si falla (avisa).
+async function setStudentScopes(updates){
+  const list=updates.filter(u=>u&&u.uid);
+  if(!list.length) return true;
+  try{
+    const idToken=await auth.currentUser.getIdToken();
+    const res=await fetch('/.netlify/functions/set-student-scope', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+idToken},
+      body:JSON.stringify({updates:list})
+    });
+    if(!res.ok){ console.error('set-student-scope:', await res.text()); return false; }
+    return true;
+  }catch(e){
+    console.error('set-student-scope:', e);
     return false;
   }
 }
@@ -1301,7 +1622,7 @@ async function importCSV(event){
     for(const line of lines){
       const parts=line.split(/[,\t]/).map(x=>x.trim().replace(/^"|"$/g,''));
       if(parts.length<2){skipped++;continue;}
-      const carnet=parts[0],name=parts[1]||'',email=parts[2]||'';
+      const carnet=parts[0],name=parts[1]||'',email=parts[2]||'',sede=parts[3]||null;
       // El correo es obligatorio (identidad de Firebase Auth) — se omite
       // cualquier fila sin un correo con formato válido.
       if(!carnet||!/^\d{4,12}$/.test(carnet)||!name||!email||!emailRe.test(email)){skipped++;continue;}
@@ -1312,7 +1633,8 @@ async function importCSV(event){
       try{
         const tempPassword = generatePassword();
         const uid = await createStudentAuthAccount(email, tempPassword);
-        await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
+        await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid,sede});
+        if(sede) await setStudentScopes([{uid,sede}]);
         added++;
       }catch{
         skipped++;

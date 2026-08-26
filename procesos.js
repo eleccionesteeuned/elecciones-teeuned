@@ -1,7 +1,7 @@
 // procesos.js — Módulo Firestore para procesos y votos
 import { db } from "./firebase.js";
 import {
-  collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, query, orderBy, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Carga todos los procesos con sus votos desde Firestore
@@ -41,6 +41,64 @@ export async function registrarVoto(processId, voto) {
 // Cierra un proceso activo
 export async function cerrarProceso(processId) {
   await updateDoc(doc(db, "procesos", processId), { status: "cerrada" });
+}
+
+// ============================
+// VOTACIONES AUR (Asamblea Universitaria Representativa)
+// ============================
+// Viven en una colección separada ("procesos_aur") porque su regla de
+// lectura en Firestore es distinta a la de /procesos: un estudiante solo
+// puede leer las elecciones de SU sede/región (via custom claims), no
+// todas. Mantenerlas separadas evita tocar la regla — ya probada — de
+// /procesos, que sigue abierta a cualquier autenticado.
+
+// Catálogo de Sedes/Regiones (config/aurCatalog): [{name, region}].
+// region es null para una sede independiente (sin región asociada).
+export async function getAurCatalog() {
+  const snap = await getDoc(doc(db, "config", "aurCatalog"));
+  return snap.exists() ? (snap.data().sedes || []) : [];
+}
+export async function saveAurCatalog(sedes) {
+  await setDoc(doc(db, "config", "aurCatalog"), { sedes });
+}
+
+// Carga procesos AUR. Para TEEUNED/Fiscalía (sin scopeNames) trae todos.
+// Para un estudiante, scopeNames = [suSede, suRegión] (filtrando vacíos) —
+// Firestore exige que la consulta esté acotada al mismo campo que usa la
+// regla de seguridad (scope.name), si no la rechaza por completo.
+export async function cargarProcesosAUR(scopeNames) {
+  const base = collection(db, "procesos_aur");
+  const q = scopeNames && scopeNames.length
+    ? query(base, where("scope.name", "in", scopeNames))
+    : query(base, orderBy("createdAt", "desc"));
+  const snap = await getDocs(q);
+  const lista = [];
+  for (const d of snap.docs) {
+    const p = { ...d.data() };
+    if (!p.candidates) p.candidates = [];
+    const votesSnap = await getDocs(collection(db, "procesos_aur", d.id, "votos"));
+    p.votes = votesSnap.docs.map(v => v.data());
+    p.votedCarnets = p.votes.map(v => v.voterCarnet);
+    lista.push(p);
+  }
+  lista.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return lista;
+}
+
+export async function guardarProcesoAUR(p) {
+  const { votes, votedCarnets, ...data } = p;
+  await setDoc(doc(db, "procesos_aur", p.id), data);
+}
+
+export async function registrarVotoAUR(processId, voto) {
+  const ref = doc(db, "procesos_aur", processId, "votos", voto.voterCarnet);
+  const existing = await getDoc(ref);
+  if (existing.exists()) throw new Error("ya-voto");
+  await setDoc(ref, voto);
+}
+
+export async function cerrarProcesoAUR(processId) {
+  await updateDoc(doc(db, "procesos_aur", processId), { status: "cerrada" });
 }
 
 // Formatea una duración en milisegundos como "1d 3h", "2h 15m", "5m 30s" o

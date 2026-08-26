@@ -432,6 +432,7 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
           <div class="page-subtitle">Vista de supervisión en tiempo real · Solo lectura</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="showPane('students')">👥 Ver Padrón</button>
+        <button class="btn btn-primary btn-sm" onclick="showPane('aur')">🎓 AUR</button>
       </div>
       <div class="stats-row" id="dash-stats"></div>
       <div class="filter-bar">
@@ -491,6 +492,21 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
       </div>
     </div>
 
+    <!-- ── AUR ── -->
+    <div id="pane-aur" style="display:none">
+      <div class="page-title">Votaciones AUR</div>
+      <div class="page-subtitle" style="margin-bottom:14px">Elección de representantes ante la Asamblea Universitaria Representativa — vista de supervisión, todas las sedes y regiones.</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-header-title">Votaciones AUR</span>
+          <span class="badge badge-active" id="aur-count-badge">0</span>
+        </div>
+        <div class="card-body">
+          <div id="aur-process-list"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
 </div>
@@ -499,14 +515,16 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
 import { db, auth } from "./firebase.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { cargarProcesos, groupByDay, startTickers } from "./procesos.js";
+import { cargarProcesos, groupByDay, startTickers, cargarProcesosAUR } from "./procesos.js";
 
 let session=null;
 let filterStatus='todas';
 let selectedDate='';
 let resultsMode='summary';
 let currentProcId=null;
+let currentIsAur=false;
 let processes=[];
+let aurProcesses=[];
 let resChartInstance=null;
 
 function renderResultsChart(labels,dataPct,colors){
@@ -558,12 +576,13 @@ async function doLogoutSecure(){
 window.doLogout = doLogoutSecure;
 
 function showPane(name){
-  ['dashboard','results','students'].forEach(p=>{
+  ['dashboard','results','students','aur'].forEach(p=>{
     document.getElementById('pane-'+p).style.display=p===name?'block':'none';
   });
   document.getElementById('btn-home').style.display=name==='dashboard'?'none':'inline-block';
   if(name==='students') renderStudents();
   if(name==='dashboard') renderDashboard();
+  if(name==='aur') renderAurPane();
 }
 window.showPane=showPane;
 
@@ -680,12 +699,44 @@ function renderCard(p){
   </div>`;
 }
 
+async function renderAurPane(){
+  aurProcesses=await cargarProcesosAUR();
+  document.getElementById('aur-count-badge').textContent=aurProcesses.length;
+  const listEl=document.getElementById('aur-process-list');
+  listEl.innerHTML=aurProcesses.length
+    ? aurProcesses.map(renderCardAUR).join('')
+    : '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Sin votaciones AUR todavía.</div></div>';
+}
+
+function renderCardAUR(p){
+  const r=getResults(p);
+  const isActive=p.status==='activa';
+  const sB=isActive?'<span class="badge badge-active">● Activa</span>':'<span class="badge badge-closed">◉ Cerrada</span>';
+  const scB=`<span class="badge badge-personas">${p.scope.kind==='sede'?'📍':'🗺️'} ${p.scope.name}</span>`;
+  const bars=r.candidates.map((c,i)=>{const cnt=r.counts[c.id]||0;return`<div class="mini-bar-row"><span class="mini-bar-label">${c.name}</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct(cnt)}%;background:${PALETTE[i%PALETTE.length]}"></div></div><span class="mini-bar-count" style="color:${PALETTE[i%PALETTE.length]}">${cnt}</span></div>`;}).join('');
+  const clocks=isActive?`<span class="js-elapsed" data-since="${p.createdAt}"></span>${p.endsAt?`<span class="js-countdown" data-ends="${p.endsAt}"></span>`:''}`:'';
+  return`<div class="process-card${!isActive?' closed-process':''} personas-process">
+    <div class="process-card-top">
+      <div style="flex:1;min-width:160px"><div class="process-title">${p.title||'Proceso sin título'}</div><div class="process-desc">${p.description||''}</div>
+      <div class="process-meta">${sB}${scB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span>${clocks}</div></div>
+      <div class="mini-bars">${bars}</div>
+    </div>
+    <div class="process-actions">
+      <button class="btn btn-primary btn-sm" onclick="openResults('${p.id}','summary',true)">📊 Ver Resultados</button>
+      <button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}',true)">⬇ Excel</button>
+      <span class="process-date">Creado: ${fmtDateShort(p.createdAt)}</span>
+    </div>
+  </div>`;
+}
+window.downloadExcel=downloadExcel;
+
 // ---
-async function openResults(pid,mode){
-  processes=await cargarProcesos();
-  const p=processes.find(x=>x.id===pid);
+async function openResults(pid,mode,isAur){
+  if(isAur) aurProcesses=await cargarProcesosAUR();
+  else processes=await cargarProcesos();
+  const p=(isAur?aurProcesses:processes).find(x=>x.id===pid);
   if(!p) return;
-  currentProcId=pid; resultsMode=mode||'summary';
+  currentProcId=pid; resultsMode=mode||'summary'; currentIsAur=!!isAur;
   renderResults(p); showPane('results');
 }
 window.openResults=openResults;
@@ -697,7 +748,8 @@ function renderResults(p){
   document.getElementById('res-desc').textContent=p.description||'Sin descripción disponible.';
 
   let notice='';
-  if(isPersonas) notice='<div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Solo se muestran resultados finales. Las identidades de los votantes son estrictamente confidenciales incluso para la Fiscalía.</div>';
+  if(p.scope) notice=`<div class="info-box info-purple">🎓 <strong>Votación AUR — ${p.scope.kind==='sede'?'Sede':'Región'}: ${p.scope.name}.</strong> Siempre secreta. Solo resultados agregados.</div>`;
+  else if(isPersonas) notice='<div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Solo se muestran resultados finales. Las identidades de los votantes son estrictamente confidenciales incluso para la Fiscalía.</div>';
   else if(p.type==='abierta') notice='<div class="info-box info-warn">🔓 <strong>Votación Abierta:</strong> Datos individuales visibles conforme a las reglas de este proceso.</div>';
   else notice='<div class="info-box info-info">🔒 <strong>Votación Cerrada:</strong> Vista supervisión — registros anónimos disponibles.</div>';
   document.getElementById('res-notice').innerHTML=notice;
@@ -707,7 +759,7 @@ function renderResults(p){
     actHTML+=`<button class="btn btn-sm ${resultsMode==='summary'?'btn-primary':'btn-secondary'}" onclick="switchResultsMode('summary')">Solo Resultados</button>`;
     actHTML+=`<button class="btn btn-sm ${resultsMode==='detail'?'btn-primary':'btn-secondary'}" onclick="switchResultsMode('detail')">Por Votante</button>`;
   }
-  actHTML+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}')">⬇ Excel</button>`;
+  actHTML+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}',${!!currentIsAur})">⬇ Excel</button>`;
   document.getElementById('res-actions').innerHTML=actHTML;
 
   const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
@@ -750,7 +802,7 @@ function renderResults(p){
 
 function switchResultsMode(mode){
   resultsMode=mode;
-  const p=processes.find(x=>x.id===currentProcId);
+  const p=(currentIsAur?aurProcesses:processes).find(x=>x.id===currentProcId);
   if(p) renderResults(p);
 }
 window.switchResultsMode=switchResultsMode;
@@ -758,8 +810,8 @@ window.renderResults=renderResults;
 window.downloadExcel=downloadExcel;
 
 // ---
-function downloadExcel(pid){
-  const p=processes.find(x=>x.id===pid);
+function downloadExcel(pid,isAur){
+  const p=(isAur?aurProcesses:processes).find(x=>x.id===pid);
   if(!p) return;
   const r=getResults(p);
   const isPersonas=p.type==='personas';
@@ -767,7 +819,7 @@ function downloadExcel(pid){
   const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
   const rows=[['SISTEMA DE VOTACIÓN ELECTRÓNICA — FEUNED / TEEUNED'],[],
     ['Proceso',p.title||'Sin título'],['Descripción',p.description||'Sin descripción disponible.'],
-    ['Tipo',isPersonas?'Personas (Siempre Secreta)':p.type==='abierta'?'Abierta':'Cerrada'],
+    ['Tipo',p.scope?`AUR — ${p.scope.kind==='sede'?'Sede':'Región'}: ${p.scope.name}`:isPersonas?'Personas (Siempre Secreta)':p.type==='abierta'?'Abierta':'Cerrada'],
     ['Estado',p.status==='activa'?'Activa':'Cerrada'],['Exportado por','Fiscalía FEUNED — Supervisión'],
     ['Fecha exportación',new Date().toLocaleString('es-CR')],[],
     ['QUÓRUM','VOTOS EMITIDOS','PARTICIPACIÓN'],[p.quorum,r.total,part+'%'],[],

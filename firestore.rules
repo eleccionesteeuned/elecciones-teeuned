@@ -69,6 +69,17 @@ service cloud.firestore {
       allow write: if isTeeuned();
     }
 
+    // Padrón AUR: lista propia (carnet, nombre, sede) separada del padrón
+    // general — un estudiante puede tener cuenta de acceso (padron/{carnet})
+    // sin participar en AUR. Solo TEEUNED/Fiscalía la leen desde el panel
+    // administrativo; los estudiantes obtienen su sede/región vía los
+    // custom claims del token (asignados al agregarlos aquí), no leyendo
+    // esta colección directamente.
+    match /padron_aur/{carnet} {
+      allow read: if isStaff();
+      allow write: if isTeeuned();
+    }
+
     // Votaciones AUR: una elección por Sede y una por Región. A diferencia
     // de /procesos, aquí la lectura NO está abierta a cualquier autenticado
     // — un estudiante solo puede leer (y por tanto solo llega a saber que

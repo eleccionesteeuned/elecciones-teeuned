@@ -545,7 +545,7 @@ function showNotif(msg,type='success'){
             <div class="upload-zone" onclick="document.getElementById('file-csv').click()">
               <div class="upload-zone-icon">📂</div>
               <p><strong>Clic para seleccionar archivo CSV</strong></p>
-              <p style="margin-top:5px">Formato: <code style="background:var(--cream2);padding:2px 6px;border-radius:3px;font-size:11px">carnet,nombre,email,sede</code> (sede es opcional, solo para Votaciones AUR)</p>
+              <p style="margin-top:5px">Formato: <code style="background:var(--cream2);padding:2px 6px;border-radius:3px;font-size:11px">carnet,nombre,email</code></p>
               <p style="margin-top:5px;font-size:11px;color:var(--text2)">El correo es obligatorio: se usa para crear el acceso del estudiante. Las filas sin correo válido se omiten.</p>
             </div>
             <input type="file" id="file-csv" accept=".csv,.txt" style="display:none" onchange="importCSV(event)">
@@ -558,10 +558,7 @@ function showNotif(msg,type='success'){
               <input class="field" type="email" id="st-email" placeholder="Correo electrónico * (ej: est@uned.cr)" style="flex:2">
               <input class="field" type="text" id="st-pass" placeholder="Contraseña (opcional, mín. 6)" style="flex:1;min-width:140px">
             </div>
-            <div style="display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap">
-              <select class="field" id="st-sede" style="flex:1"><option value="">Sede (opcional — para Votaciones AUR)</option></select>
-            </div>
-            <div class="field-hint" style="margin-top:-4px;margin-bottom:8px">Si deja la contraseña en blanco, se genera una automáticamente. La Sede solo es necesaria si el estudiante debe participar en Votaciones AUR — gestione el catálogo de sedes en la pestaña "🎓 AUR".</div>
+            <div class="field-hint" style="margin-top:-4px;margin-bottom:8px">Si deja la contraseña en blanco, se genera una automáticamente.</div>
             <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
               <button class="btn btn-primary btn-sm" onclick="addStudent()" style="white-space:nowrap">+ Agregar</button>
             </div>
@@ -616,6 +613,28 @@ function showNotif(msg,type='success'){
       </div>
 
       <div class="card">
+        <div class="card-header">
+          <span class="card-header-title">👥 Padrón AUR</span>
+          <span class="badge badge-active" id="aurp-count-badge">0</span>
+        </div>
+        <div class="card-body">
+          <div class="field-hint" style="margin-bottom:10px">Lista propia y separada del Padrón general: solo quienes estén aquí participan en Votaciones AUR. El carnet debe tener ya una cuenta de acceso creada en el Padrón general (Inicio → Padrón).</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <input class="field" type="text" id="aurp-carnet" placeholder="Carnet" style="flex:1;min-width:120px">
+            <select class="field" id="aurp-sede" style="flex:2;min-width:180px"><option value="">Seleccione una sede…</option></select>
+            <button class="btn btn-primary btn-sm" onclick="addAurPadronEntry()">+ Agregar</button>
+          </div>
+          <div class="field-error" id="aurp-err"></div>
+          <div style="max-height:320px;overflow-y:auto">
+            <table>
+              <thead><tr><th>#</th><th>Carnet</th><th>Nombre</th><th>Sede</th><th>Región</th><th></th></tr></thead>
+              <tbody id="aurp-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-header"><span class="card-header-title">+ Nueva Votación AUR</span></div>
         <div class="card-body">
           <div class="form-row">
@@ -648,21 +667,6 @@ function showNotif(msg,type='success'){
 
   </div>
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
-</div>
-
-<!-- Modal editar sede de un estudiante -->
-<div id="sede-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSedeModal()">
-  <div class="modal-box">
-    <div class="modal-title">📍 Sede del estudiante</div>
-    <div class="modal-sub" id="sede-modal-student"></div>
-    <div class="field-hint" style="margin:6px 0 10px">Usada solo para Votaciones AUR. Al guardar, se actualiza su cuenta de acceso — puede tardar unos minutos en aplicar si el estudiante ya tiene sesión iniciada.</div>
-    <label class="field-label">Sede</label>
-    <select class="field" id="sede-modal-select"><option value="">Sin asignar</option></select>
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
-      <button class="btn btn-secondary btn-sm" onclick="closeSedeModal()">Cancelar</button>
-      <button class="btn btn-gold btn-sm" onclick="applySedeModal()">✓ Guardar</button>
-    </div>
-  </div>
 </div>
 
 <!-- Modal cronómetro de cierre -->
@@ -1126,8 +1130,6 @@ async function submitCreate(){
 // ============================
 async function renderStudents(){
   const students = await getStudents();
-  await ensureAurCatalogLoaded();
-  populateSedeSelects();
 
   document.getElementById('st-count-badge').textContent =
     students.length + ' estudiante' + (students.length !== 1 ? 's' : '');
@@ -1137,14 +1139,12 @@ async function renderStudents(){
       <td style="color:var(--text2);font-size:12px">${i+1}</td>
       <td class="mono">${s.carnet}</td><td>${s.name}</td>
       <td class="mono" style="font-size:11px">${s.email||'<span style="color:var(--text3);font-style:italic">Sin correo</span>'}</td>
-      <td style="font-size:12px">${s.sede||'<span style="color:var(--text3);font-style:italic">—</span>'}</td>
       <td style="white-space:nowrap">
-        <button class="btn btn-sm" style="padding:3px 8px" title="Sede (Votaciones AUR)" onclick="editSede('${s.carnet}')">📍</button>
         <button class="btn btn-sm" style="padding:3px 8px" title="Reenviar contraseña" onclick="resendPassword('${s.carnet}')">🔑</button>
         <button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="removeStudent('${s.carnet}')">✕</button>
       </td>
     </tr>`).join('')
-    : '<tr><td colspan="6" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
+    : '<tr><td colspan="5" style="text-align:center;padding:22px;color:var(--text2)">El padrón está vacío.</td></tr>';
 }
 
 // ============================
@@ -1156,50 +1156,88 @@ async function ensureAurCatalogLoaded(){
   }
 }
 function populateSedeSelects(){
-  const opts='<option value="">Sin asignar</option>'+aurCatalog.map(s=>`<option value="${s.name}">${s.name}${s.region?' — '+s.region:''}</option>`).join('');
-  const stSel=document.getElementById('st-sede');
-  if(stSel) stSel.innerHTML='<option value="">Sede (opcional — para Votaciones AUR)</option>'+aurCatalog.map(s=>`<option value="${s.name}">${s.name}${s.region?' — '+s.region:''}</option>`).join('');
-  const modalSel=document.getElementById('sede-modal-select');
-  if(modalSel) modalSel.innerHTML=opts;
+  const opts='<option value="">Seleccione una sede…</option>'+aurCatalog.map(s=>`<option value="${s.name}">${s.name}${s.region?' — '+s.region:''}</option>`).join('');
+  const aurAddSel=document.getElementById('aurp-sede');
+  if(aurAddSel) aurAddSel.innerHTML=opts;
 }
 
-let sedeModalCarnet=null;
-async function editSede(carnet){
+// ── Padrón AUR (separado del padrón general) ──────────────────────
+// Lista propia de carnet+nombre+sede, exclusiva de Votaciones AUR — un
+// estudiante puede estar en el padrón general y no en este, o viceversa.
+// Para poder votar sí necesita cuenta de acceso real (creada desde el
+// Padrón general), por eso se busca su authUid ahí al agregarlo aquí.
+async function getAurPadron(){
+  const snap=await getDocs(collection(db,"padron_aur"));
+  const list=[];
+  snap.forEach(d=>list.push(d.data()));
+  list.sort((a,b)=>a.carnet.localeCompare(b.carnet));
+  return list;
+}
+async function renderAurPadron(){
   await ensureAurCatalogLoaded();
   populateSedeSelects();
-  const students=await getStudents();
-  const s=students.find(x=>x.carnet===carnet);
-  if(!s) return;
-  sedeModalCarnet=carnet;
-  document.getElementById('sede-modal-student').textContent=s.name+' ('+s.carnet+')';
-  document.getElementById('sede-modal-select').value=s.sede||'';
-  document.getElementById('sede-modal').style.display='flex';
+  const list=await getAurPadron();
+  document.getElementById('aurp-count-badge').textContent=list.length;
+  document.getElementById('aurp-tbody').innerHTML=list.length
+    ? list.map((s,i)=>{
+        const cat=aurCatalog.find(c=>c.name===s.sede);
+        const region=cat&&cat.region?cat.region:'<span style="color:var(--text3);font-style:italic">—</span>';
+        return `<tr>
+          <td style="color:var(--text2);font-size:12px">${i+1}</td>
+          <td class="mono">${s.carnet}</td><td>${s.name}</td>
+          <td>${s.sede}</td><td style="font-size:12px">${region}</td>
+          <td style="white-space:nowrap"><button class="btn btn-danger btn-sm" style="padding:3px 8px" onclick="removeAurPadronEntry('${s.carnet}')">✕</button></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text2)">Padrón AUR vacío.</td></tr>';
 }
-function closeSedeModal(){
-  document.getElementById('sede-modal').style.display='none';
-  sedeModalCarnet=null;
-}
-async function applySedeModal(){
-  const carnet=sedeModalCarnet;
-  if(!carnet) return;
-  const sede=document.getElementById('sede-modal-select').value||null;
+async function addAurPadronEntry(){
+  const carnetEl=document.getElementById('aurp-carnet');
+  const sedeEl=document.getElementById('aurp-sede');
+  const errEl=document.getElementById('aurp-err');
+  errEl.style.display='none';
+  const carnet=carnetEl.value.trim();
+  const sede=sedeEl.value;
+  if(!carnet||!/^\d{4,12}$/.test(carnet)){
+    errEl.textContent='Carnet inválido (solo dígitos, 4–12 caracteres).';
+    errEl.style.display='block';return;
+  }
+  if(!sede){
+    errEl.textContent='Seleccione una sede.';
+    errEl.style.display='block';return;
+  }
   try{
-    const snap=await getDoc(doc(db,"padron",carnet));
-    if(!snap.exists()) return;
-    const s=snap.data();
-    await setDoc(doc(db,"padron",carnet),{...s,sede});
-    if(s.authUid) await setStudentScopes([{uid:s.authUid,sede}]);
-    closeSedeModal();
-    showNotif('Sede actualizada.');
-    await renderStudents();
+    const genSnap=await getDoc(doc(db,"padron",carnet));
+    if(!genSnap.exists()||!genSnap.data().authUid){
+      errEl.textContent='Ese carnet no tiene cuenta de acceso en el Padrón general. Créela ahí primero (Padrón → Agregar manualmente).';
+      errEl.style.display='block';return;
+    }
+    const gen=genSnap.data();
+    await setDoc(doc(db,"padron_aur",carnet),{carnet,name:gen.name,sede});
+    await setStudentScopes([{uid:gen.authUid,sede}]);
+    carnetEl.value='';sedeEl.value='';
+    showNotif('Agregado al padrón AUR.');
+    await renderAurPadron();
   }catch(e){
     console.error(e);
-    showNotif('Error actualizando la sede.','error');
+    showNotif('Error agregando al padrón AUR.','error');
   }
 }
-window.editSede=editSede;
-window.closeSedeModal=closeSedeModal;
-window.applySedeModal=applySedeModal;
+async function removeAurPadronEntry(carnet){
+  if(!confirm('¿Quitar a este estudiante del padrón AUR? Ya no podrá ver ni votar en Votaciones AUR.')) return;
+  try{
+    const genSnap=await getDoc(doc(db,"padron",carnet));
+    await deleteDoc(doc(db,"padron_aur",carnet));
+    if(genSnap.exists()&&genSnap.data().authUid) await setStudentScopes([{uid:genSnap.data().authUid,sede:null}]);
+    showNotif('Quitado del padrón AUR.');
+    await renderAurPadron();
+  }catch(e){
+    console.error(e);
+    showNotif('Error quitando del padrón AUR.','error');
+  }
+}
+window.addAurPadronEntry=addAurPadronEntry;
+window.removeAurPadronEntry=removeAurPadronEntry;
 
 function toggleAurCatalog(){
   const body=document.getElementById('aur-catalog-body');
@@ -1333,6 +1371,7 @@ async function initAurPane(){
   await ensureAurCatalogLoaded();
   renderCatalogList();
   renderAurScopeList();
+  await renderAurPadron();
   await renderAurPane();
 }
 
@@ -1435,12 +1474,9 @@ async function addStudent(){
     }
   }
 
-  const sede=document.getElementById('st-sede').value||null;
   try{
-    await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid,sede});
-    if(sede) await setStudentScopes([{uid,sede}]);
+    await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
     ['st-carnet','st-name','st-email','st-pass'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('st-sede').value='';
     await renderStudents();
 
     const sent = await sendPasswordEmail(email, name, carnet, tempPassword);
@@ -1631,7 +1667,7 @@ async function importCSV(event){
     for(const line of lines){
       const parts=line.split(/[,\t]/).map(x=>x.trim().replace(/^"|"$/g,''));
       if(parts.length<2){skipped++;continue;}
-      const carnet=parts[0],name=parts[1]||'',email=parts[2]||'',sede=parts[3]||null;
+      const carnet=parts[0],name=parts[1]||'',email=parts[2]||'';
       // El correo es obligatorio (identidad de Firebase Auth) — se omite
       // cualquier fila sin un correo con formato válido.
       if(!carnet||!/^\d{4,12}$/.test(carnet)||!name||!email||!emailRe.test(email)){skipped++;continue;}
@@ -1642,8 +1678,7 @@ async function importCSV(event){
       try{
         const tempPassword = generatePassword();
         const uid = await createStudentAuthAccount(email, tempPassword);
-        await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid,sede});
-        if(sede) await setStudentScopes([{uid,sede}]);
+        await setDoc(doc(db,"padron",carnet),{carnet,name,email,authUid:uid});
         added++;
       }catch{
         skipped++;

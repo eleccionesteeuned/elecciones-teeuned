@@ -93,7 +93,7 @@ function getResults(p){
   }
   const favor=p.votes.filter(v=>v.choice==='a_favor').length;
   const contra=p.votes.filter(v=>v.choice==='en_contra').length;
-  const abs=p.votes.filter(v=>v.choice==='abstención').length;
+  const abs=p.votes.filter(v=>v.choice==='abstencion').length;
   const total=p.votes.length;
   return{mode:'standard',favor,contra,abs,total,pct:n=>total>0?Math.round(n/total*100):0};
 }

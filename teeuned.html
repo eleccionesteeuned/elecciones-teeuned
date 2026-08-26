@@ -71,6 +71,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
 .btn-filter.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
 #date-filter{padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);color:var(--text1);font-size:12px}
 
+/* ── CLOCKS ── */
+.js-elapsed,.js-countdown{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--cream2);color:var(--text2);white-space:nowrap}
+.js-countdown{background:#eaf1e8;color:#1a6b3c}
+.js-countdown.countdown-warn{background:#fdf1de;color:#8a6e00}
+.js-countdown.countdown-expired{background:#8b1a1a;color:#fff}
+
 /* ── DATE GROUPS ── */
 .date-group{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;background:var(--cream2)}
 .date-group-summary{cursor:pointer;padding:10px 16px;font-weight:700;color:var(--navy);font-size:13px;text-transform:capitalize;display:flex;align-items:center;gap:8px;list-style:none;user-select:none}
@@ -496,6 +502,11 @@ function showNotif(msg,type='success'){
               <div class="field-hint">Cantidad máxima de votos esperados en este proceso.</div>
             </div>
           </div>
+          <div class="form-group">
+            <label class="field-label">Cronómetro de cierre (opcional)</label>
+            <input class="field" type="datetime-local" id="cr-ends">
+            <div class="field-hint">Si lo define, los estudiantes verán un cronómetro en vivo con el tiempo restante. Déjelo vacío para cerrar el proceso manualmente. Se puede definir o cambiar después desde la tarjeta del proceso (⏱ Cronómetro).</div>
+          </div>
           <div id="candidates-section" style="display:none">
             <div class="info-box info-purple">👤 <strong>Votación de Personas — Siempre Secreta.</strong> Agregue los candidatos.</div>
             <label class="field-label">Candidatos *</label>
@@ -589,7 +600,7 @@ import {
   deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { cargarProcesos, guardarProceso, cerrarProceso, groupByDay } from "./procesos.js";
+import { cargarProcesos, guardarProceso, cerrarProceso, groupByDay, startTickers } from "./procesos.js";
 
 let session=null;
 let filterStatus='todas';
@@ -629,6 +640,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   // falsa al login (su primer callback puede llegar con user=null
   // mientras el SDK restaura la sesión persistida).
   document.getElementById('nav-name').textContent=session.name;
+  startTickers();
   try{
     await renderDashboard();
   }catch(e){
@@ -747,16 +759,47 @@ function renderCard(p){
   }
   let acts=`<button class="btn btn-primary btn-sm" onclick="openResults('${p.id}','summary')">📊 Resultados</button>`;
   acts+=`<button class="btn btn-excel btn-sm" onclick="downloadExcel('${p.id}')">⬇ Excel</button>`;
+  if(isActive) acts+=`<button class="btn btn-sm" onclick="setProcessTimer('${p.id}')">⏱ Cronómetro</button>`;
   if(isActive) acts+=`<button class="btn btn-danger btn-sm" onclick="closeProcess('${p.id}')">🔒 Cerrar</button>`;
+  const clocks=isActive?`<span class="js-elapsed" data-since="${p.createdAt}"></span>${p.endsAt?`<span class="js-countdown" data-ends="${p.endsAt}"></span>`:''}`:'';
   return`<div class="process-card${!isActive?' closed-process':''}${p.type==='personas'?' personas-process':''}">
     <div class="process-card-top">
       <div style="flex:1;min-width:160px"><div class="process-title">${p.title||'Proceso sin título'}</div><div class="process-desc">${p.description||'Sin descripción disponible.'}</div>
-      <div class="process-meta">${sB}${tB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span></div></div>
+      <div class="process-meta">${sB}${tB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span>${clocks}</div></div>
       <div class="mini-bars">${bars}</div>
     </div>
     <div class="process-actions">${acts}<span class="process-date">Creado: ${fmtDateShort(p.createdAt)}</span></div>
   </div>`;
 }
+
+// Programa, cambia o quita el cronómetro de cierre visible para los
+// estudiantes en un proceso activo. guardarProceso() reemplaza el
+// documento completo (menos votes/votedCarnets, recalculados siempre) por
+// lo que se le pasa el proceso ya cargado con solo endsAt modificado.
+async function setProcessTimer(pid){
+  const p=processes.find(x=>x.id===pid);
+  if(!p) return;
+  const current=p.endsAt?new Date(p.endsAt):null;
+  const msg=(current?`Cronómetro actual: cierra el ${current.toLocaleString('es-CR')}.\n\n`:'')+'¿En cuántos minutos debe cerrarse esta votación?\n(Deje vacío y presione Aceptar para quitar el cronómetro)';
+  const input=prompt(msg,'');
+  if(input===null) return;
+  const trimmed=input.trim();
+  let endsAt=null;
+  if(trimmed){
+    const mins=parseFloat(trimmed);
+    if(!mins||mins<=0){showNotif('Ingrese un número de minutos válido.','error');return;}
+    endsAt=new Date(Date.now()+mins*60000).toISOString();
+  }
+  try{
+    await guardarProceso({...p,endsAt});
+    showNotif(endsAt?'Cronómetro programado.':'Cronómetro removido.');
+    await renderDashboard();
+  }catch(e){
+    console.error(e);
+    showNotif('Error al actualizar el cronómetro.','error');
+  }
+}
+window.setProcessTimer=setProcessTimer;
 
 async function closeProcess(pid){
   if(!confirm('¿Confirma cerrar este proceso? Esta acción no puede revertirse.')) return;
@@ -861,7 +904,7 @@ function downloadExcel(pid){
 
 // ---
 function resetCreateForm(){
-  ['cr-title','cr-desc','cr-quorum','new-cand'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['cr-title','cr-desc','cr-quorum','cr-ends','new-cand'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('cr-type').value='abierta';
   draftCandidates=[];
   ['cr-title-err','cr-desc-err','cr-quorum-err','cr-cand-err'].forEach(id=>document.getElementById(id).style.display='none');
@@ -897,7 +940,9 @@ async function submitCreate(){
   if(!quorum||quorum<=0){document.getElementById('cr-quorum-err').style.display='block';ok=false;}else document.getElementById('cr-quorum-err').style.display='none';
   if(type==='personas'&&draftCandidates.length<2){document.getElementById('cr-cand-err').style.display='block';ok=false;}else document.getElementById('cr-cand-err').style.display='none';
   if(!ok) return;
-  const nuevo={id:'p'+Date.now(),title,description:desc,type,quorum,status:'activa',createdAt:new Date().toISOString(),candidates:type==='personas'?[...draftCandidates]:null,votes:[],votedCarnets:[]};
+  const endsRaw=document.getElementById('cr-ends').value;
+  const endsAt=endsRaw?new Date(endsRaw).toISOString():null;
+  const nuevo={id:'p'+Date.now(),title,description:desc,type,quorum,status:'activa',createdAt:new Date().toISOString(),endsAt,candidates:type==='personas'?[...draftCandidates]:null,votes:[],votedCarnets:[]};
   try{
     await guardarProceso(nuevo);
     draftCandidates=[];

@@ -71,6 +71,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
 .btn-filter.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
 #date-filter{padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);color:var(--text1);font-size:12px}
 
+/* ── CLOCKS ── */
+.js-elapsed,.js-countdown{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--cream2);color:var(--text2);white-space:nowrap}
+.js-countdown{background:#eaf1e8;color:#1a6b3c}
+.js-countdown.countdown-warn{background:#fdf1de;color:#8a6e00}
+.js-countdown.countdown-expired{background:#8b1a1a;color:#fff}
+
 /* ── DATE GROUPS ── */
 .date-group{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;background:var(--cream2)}
 .date-group-summary{cursor:pointer;padding:10px 16px;font-weight:700;color:var(--navy);font-size:13px;text-transform:capitalize;display:flex;align-items:center;gap:8px;list-style:none;user-select:none}
@@ -493,7 +499,7 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
 import { db, auth } from "./firebase.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { cargarProcesos, groupByDay } from "./procesos.js";
+import { cargarProcesos, groupByDay, startTickers } from "./procesos.js";
 
 let session=null;
 let filterStatus='todas';
@@ -527,6 +533,7 @@ document.addEventListener('DOMContentLoaded',async ()=>{
   // falsa al login (su primer callback puede llegar con user=null
   // mientras el SDK restaura la sesión persistida).
   document.getElementById('nav-name').textContent=session.name;
+  startTickers();
   try{
     await renderDashboard();
   }catch(e){
@@ -622,10 +629,11 @@ function renderCard(p){
     bars=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstención',c:r.abs,col:'#8a6e00'}]
       .map(b=>`<div class="mini-bar-row"><span class="mini-bar-label">${b.l}</span><div class="mini-bar-track"><div class="mini-bar-fill" style="width:${r.pct(b.c)}%;background:${b.col}"></div></div><span class="mini-bar-count" style="color:${b.col}">${b.c}</span></div>`).join('');
   }
+  const clocks=isActive?`<span class="js-elapsed" data-since="${p.createdAt}"></span>${p.endsAt?`<span class="js-countdown" data-ends="${p.endsAt}"></span>`:''}`:'';
   return`<div class="process-card${!isActive?' closed-process':''}${p.type==='personas'?' personas-process':''}">
     <div class="process-card-top">
       <div style="flex:1;min-width:160px"><div class="process-title">${p.title||'Proceso sin título'}</div><div class="process-desc">${p.description||'Sin descripción disponible.'}</div>
-      <div class="process-meta">${sB}${tB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span></div></div>
+      <div class="process-meta">${sB}${tB}<span style="font-size:12px;color:var(--text2)">🗳️ ${r.total}/${p.quorum} votos</span>${clocks}</div></div>
       <div class="mini-bars">${bars}</div>
     </div>
     <div class="process-actions">

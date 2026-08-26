@@ -66,6 +66,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
 .btn-filter.active{background:var(--navy);color:var(--gold);border-color:var(--navy)}
 #date-filter{padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border);background:var(--white);color:var(--text1);font-size:12px}
 
+/* ── CLOCKS ── */
+.js-elapsed,.js-countdown{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--cream2);color:var(--text2);white-space:nowrap}
+.js-countdown{background:#eaf1e8;color:#1a6b3c}
+.js-countdown.countdown-warn{background:#fdf1de;color:#8a6e00}
+.js-countdown.countdown-expired{background:#8b1a1a;color:#fff}
+
 /* ── DATE GROUPS ── */
 .date-group{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;background:var(--cream2)}
 .date-group-summary{cursor:pointer;padding:10px 16px;font-weight:700;color:var(--navy);font-size:13px;text-transform:capitalize;display:flex;align-items:center;gap:8px;list-style:none;user-select:none}
@@ -444,7 +450,7 @@ window.PALETTE = PALETTE;
 <!-- Script 2 (APP) -->
 <script type="module">
 
-import { cargarProcesos, registrarVoto, groupByDay } from "./procesos.js";
+import { cargarProcesos, registrarVoto, groupByDay, startTickers } from "./procesos.js";
 import { auth } from "./firebase.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -475,6 +481,7 @@ function renderResultsChart(labels,dataPct,colors){
 document.addEventListener('DOMContentLoaded',function(){
   session = checkAuth('student');
   if(!session) return;
+  startTickers();
 
   // La sesión real (Firebase Auth) se verifica al momento de escribir
   // (emitir voto) vía las reglas de Firestore — no aquí. Comprobarla de
@@ -601,16 +608,23 @@ function renderCard(p){
       });
     }
   }
+  var isExpired=isActive&&p.endsAt&&new Date(p.endsAt).getTime()<=Date.now();
   var acts='';
-  if(isActive&&!hasVoted)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\')">&#128499; Votar</button>';
+  if(isActive&&!hasVoted&&!isExpired)acts+='<button class="btn btn-gold btn-sm" onclick="openVote(\''+p.id+'\')">&#128499; Votar</button>';
   acts+='<button class="btn btn-primary btn-sm" onclick="openResults(\''+p.id+'\',\'summary\')">&#128202; Ver Resultados</button>';
-  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'Sin descripción disponible.')+'</div><div class="process-meta">'+sB+tB+votesMeta+vB+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
+  var clocks=isActive?'<span class="js-elapsed" data-since="'+p.createdAt+'"></span>'+(p.endsAt?'<span class="js-countdown" data-ends="'+p.endsAt+'"></span>':''):'';
+  return '<div class="process-card'+(isActive?'':' closed-process')+(p.type==='personas'?' personas-process':'')+'"><div class="process-card-top"><div style="flex:1;min-width:160px"><div class="process-title">'+(p.title||'Proceso sin título')+'</div><div class="process-desc">'+(p.description||'Sin descripción disponible.')+'</div><div class="process-meta">'+sB+tB+votesMeta+vB+clocks+'</div></div><div class="mini-bars">'+bars+'</div></div><div class="process-actions">'+acts+'<span class="process-date">Creado: '+fmtDateShort(p.createdAt)+'</span></div></div>';
 }
 
 function openVote(pid){
   var p=null;
   for(var i=0;i<processes.length;i++){if(processes[i].id===pid){p=processes[i];break;}}
   if(!p)return;
+  if(p.endsAt&&new Date(p.endsAt).getTime()<=Date.now()){
+    showNotif('El tiempo para votar en este proceso ya venció.','error');
+    renderDashboard();
+    return;
+  }
   currentProcId=pid;selectedVote=null;
   setVoteStep('choose');
   document.getElementById('vote-proc-title').textContent=p.title;

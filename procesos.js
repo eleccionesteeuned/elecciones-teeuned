@@ -43,6 +43,59 @@ export async function cerrarProceso(processId) {
   await updateDoc(doc(db, "procesos", processId), { status: "cerrada" });
 }
 
+// Formatea una duración en milisegundos como "1d 3h", "2h 15m", "5m 30s" o
+// "12s". Usado tanto para el reloj de "activa desde hace..." como para el
+// cronómetro de cierre ("cierra en...").
+export function formatDuration(ms) {
+  const neg = ms < 0;
+  ms = Math.abs(ms);
+  const totalSec = Math.floor(ms / 1000);
+  const d = Math.floor(totalSec / 86400);
+  const h = Math.floor((totalSec % 86400) / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  let out;
+  if (d > 0) out = `${d}d ${h}h`;
+  else if (h > 0) out = `${h}h ${m}m`;
+  else if (m > 0) out = `${m}m ${s}s`;
+  else out = `${s}s`;
+  return neg ? "-" + out : out;
+}
+
+// Arranca (una sola vez por página) un intervalo de 1s que actualiza todos
+// los elementos [data-since] (reloj de tiempo activo, desde createdAt) y
+// [data-ends] (cronómetro de cierre, hasta endsAt) presentes en el DOM.
+// Se apoya en atributos data-* en vez de recibir una lista de procesos para
+// no tener que re-renderizar tarjetas completas cada segundo (perdería el
+// estado abierto/cerrado de los grupos por fecha).
+export function startTickers() {
+  if (window.__teeTickerStarted) return;
+  window.__teeTickerStarted = true;
+  const tick = () => {
+    const now = Date.now();
+    document.querySelectorAll("[data-since]").forEach((el) => {
+      const since = new Date(el.dataset.since).getTime();
+      if (isNaN(since)) return;
+      el.textContent = "⏱ Activa desde hace " + formatDuration(now - since);
+    });
+    document.querySelectorAll("[data-ends]").forEach((el) => {
+      const ends = new Date(el.dataset.ends).getTime();
+      if (isNaN(ends)) return;
+      const diff = ends - now;
+      if (diff <= 0) {
+        el.textContent = "⚠ Tiempo agotado";
+        el.classList.add("countdown-expired");
+        el.classList.remove("countdown-warn");
+      } else {
+        el.textContent = "⏳ Cierra en " + formatDuration(diff);
+        el.classList.toggle("countdown-warn", diff < 5 * 60 * 1000);
+      }
+    });
+  };
+  tick();
+  setInterval(tick, 1000);
+}
+
 // Agrupa procesos por día de creación (fecha local), más reciente primero.
 // Usado por los 3 paneles (TEEUNED/Fiscalía/Estudiantil) para que la lista
 // de procesos no se sature — se colapsan por día en vez de mostrarse todos

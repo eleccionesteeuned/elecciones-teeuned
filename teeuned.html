@@ -77,6 +77,12 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
 .js-countdown.countdown-warn{background:#fdf1de;color:#8a6e00}
 .js-countdown.countdown-expired{background:#8b1a1a;color:#fff}
 
+/* ── MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,33,73,.55);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px}
+.modal-box{background:var(--white);border-radius:var(--radius2);padding:22px 24px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.modal-title{font-size:17px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:6px}
+
 /* ── DATE GROUPS ── */
 .date-group{margin-bottom:14px;border:1px solid var(--border);border-radius:var(--radius2);overflow:hidden;background:var(--cream2)}
 .date-group-summary{cursor:pointer;padding:10px 16px;font-weight:700;color:var(--navy);font-size:13px;text-transform:capitalize;display:flex;align-items:center;gap:8px;list-style:none;user-select:none}
@@ -587,6 +593,30 @@ function showNotif(msg,type='success'){
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
 </div>
 
+<!-- Modal cronómetro de cierre -->
+<div id="timer-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeTimerModal()">
+  <div class="modal-box">
+    <div class="modal-title">⏱ Cronómetro de cierre</div>
+    <div class="modal-sub" id="timer-modal-proc"></div>
+    <div class="field-hint" id="timer-modal-current" style="margin:6px 0 14px"></div>
+    <label class="field-label">Minutos restantes desde ahora</label>
+    <input class="field" type="number" id="timer-modal-mins" min="1" placeholder="Ej: 30">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0">
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('timer-modal-mins').value=15">15 min</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('timer-modal-mins').value=30">30 min</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('timer-modal-mins').value=60">1 hora</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('timer-modal-mins').value=1440">1 día</button>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap">
+      <button class="btn btn-danger btn-sm" onclick="applyProcessTimer(null)">✕ Quitar cronómetro</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary btn-sm" onclick="closeTimerModal()">Cancelar</button>
+        <button class="btn btn-gold btn-sm" onclick="applyProcessTimer()">✓ Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 
 <script type="module">
@@ -773,25 +803,42 @@ function renderCard(p){
 }
 
 // Programa, cambia o quita el cronómetro de cierre visible para los
-// estudiantes en un proceso activo. guardarProceso() reemplaza el
-// documento completo (menos votes/votedCarnets, recalculados siempre) por
-// lo que se le pasa el proceso ya cargado con solo endsAt modificado.
-async function setProcessTimer(pid){
+// estudiantes en un proceso activo, vía un modal propio (en vez de
+// window.prompt(), que bloquea toda la página de forma nativa y da mala
+// experiencia). guardarProceso() reemplaza el documento completo (menos
+// votes/votedCarnets, recalculados siempre) por lo que se le pasa el
+// proceso ya cargado con solo endsAt modificado.
+let timerModalPid=null;
+function setProcessTimer(pid){
   const p=processes.find(x=>x.id===pid);
   if(!p) return;
+  timerModalPid=pid;
+  document.getElementById('timer-modal-proc').textContent=p.title||'Proceso sin título';
+  document.getElementById('timer-modal-mins').value='';
   const current=p.endsAt?new Date(p.endsAt):null;
-  const msg=(current?`Cronómetro actual: cierra el ${current.toLocaleString('es-CR')}.\n\n`:'')+'¿En cuántos minutos debe cerrarse esta votación?\n(Deje vacío y presione Aceptar para quitar el cronómetro)';
-  const input=prompt(msg,'');
-  if(input===null) return;
-  const trimmed=input.trim();
+  document.getElementById('timer-modal-current').textContent=current
+    ?('Cronómetro actual: cierra el '+current.toLocaleString('es-CR')+'.')
+    :'Actualmente sin cronómetro — el proceso solo se cierra manualmente.';
+  document.getElementById('timer-modal').style.display='flex';
+}
+function closeTimerModal(){
+  document.getElementById('timer-modal').style.display='none';
+  timerModalPid=null;
+}
+async function applyProcessTimer(clear){
+  const pid=timerModalPid;
+  if(!pid) return;
+  const p=processes.find(x=>x.id===pid);
+  if(!p) return;
   let endsAt=null;
-  if(trimmed){
-    const mins=parseFloat(trimmed);
+  if(clear!==null){
+    const mins=parseFloat(document.getElementById('timer-modal-mins').value);
     if(!mins||mins<=0){showNotif('Ingrese un número de minutos válido.','error');return;}
     endsAt=new Date(Date.now()+mins*60000).toISOString();
   }
   try{
     await guardarProceso({...p,endsAt});
+    closeTimerModal();
     showNotif(endsAt?'Cronómetro programado.':'Cronómetro removido.');
     await renderDashboard();
   }catch(e){
@@ -800,6 +847,8 @@ async function setProcessTimer(pid){
   }
 }
 window.setProcessTimer=setProcessTimer;
+window.closeTimerModal=closeTimerModal;
+window.applyProcessTimer=applyProcessTimer;
 
 async function closeProcess(pid){
   if(!confirm('¿Confirma cerrar este proceso? Esta acción no puede revertirse.')) return;

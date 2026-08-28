@@ -272,6 +272,31 @@ label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2
 .forgot-header p{color:rgba(255,255,255,.45);font-size:12px;margin-top:3px}
 .forgot-body{padding:20px 28px 24px}
 
+/* ── MOCIONES ── */
+.mocion-card{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--border2);border-radius:var(--radius2);padding:16px 18px;margin-bottom:12px}
+.mocion-card.tipo-orden{border-left-color:var(--danger)}
+.mocion-card.tipo-forma{border-left-color:var(--warn)}
+.mocion-card.tipo-fondo{border-left-color:var(--success)}
+.mocion-card.descartada{opacity:.62}
+.mocion-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.mocion-texto{font-size:14px;line-height:1.55;color:var(--text);margin-bottom:8px;white-space:pre-wrap}
+.mocion-foot{font-size:11px;color:var(--text3)}
+.mocion-actions{display:flex;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap}
+.mocion-discusion{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:8px}
+.mocion-comment{background:var(--cream2);border-radius:var(--radius);padding:8px 10px;font-size:13px}
+.mocion-comment-meta{font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.badge-orden{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.badge-forma{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.badge-fondo{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.tipo-pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tipo-pick label{flex:1;min-width:150px;border:1.5px solid var(--border);border-radius:var(--radius2);padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.tipo-pick input{margin-right:6px}
+.tipo-pick label.tp-orden:has(input:checked){border-color:var(--danger);background:var(--danger-bg)}
+.tipo-pick label.tp-forma:has(input:checked){border-color:var(--warn);background:var(--warn-bg)}
+.tipo-pick label.tp-fondo:has(input:checked){border-color:var(--success);background:var(--success-bg)}
+.tipo-pick .tp-title{font-weight:700;font-size:13px;display:block}
+.tipo-pick .tp-desc{font-size:11px;color:var(--text2);display:block;margin-top:2px}
+
 /* ── RESPONSIVE ── */
 @media(max-width:700px){
   .main-content{padding:14px}
@@ -440,6 +465,7 @@ function showNotif(msg,type='success'){
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary btn-sm" onclick="showPane('students')">👥 Padrón</button>
           <button class="btn btn-primary btn-sm" onclick="showPane('aur')">🎓 AUR</button>
+          <button class="btn btn-primary btn-sm" onclick="showPane('mociones')">📜 Mociones</button>
           <button class="btn btn-gold" onclick="showPane('create')">+ Nuevo Proceso</button>
         </div>
       </div>
@@ -486,6 +512,7 @@ function showNotif(msg,type='success'){
     <div id="pane-create" style="display:none">
       <div class="page-title">Crear Proceso de Votación</div>
       <div class="page-subtitle" style="margin-bottom:18px">Solo el TEEUNED puede crear y gestionar procesos de votación</div>
+      <div class="info-box info-purple" id="cr-mocion-notice" style="display:none"></div>
       <div class="card">
         <div class="card-header"><span class="card-header-title">Detalles del Proceso</span></div>
         <div class="card-body">
@@ -672,6 +699,19 @@ function showNotif(msg,type='success'){
       </div>
     </div>
 
+    <!-- ── MOCIONES ── -->
+    <div id="pane-mociones" style="display:none">
+      <div class="page-title">Mociones</div>
+      <div class="page-subtitle" style="margin-bottom:18px">Mociones presentadas por los votantes, en orden de prioridad parlamentaria (Orden → Forma → Fondo) y, dentro de cada tipo, por orden de presentación.</div>
+      <div class="filter-bar">
+        <button class="btn-filter active" onclick="setMocionFilter('pendiente',this)">Pendientes</button>
+        <button class="btn-filter" onclick="setMocionFilter('todas',this)">Todas</button>
+        <button class="btn-filter" onclick="setMocionFilter('convertida',this)">Convertidas</button>
+        <button class="btn-filter" onclick="setMocionFilter('descartada',this)">Descartadas</button>
+      </div>
+      <div id="mociones-list"></div>
+    </div>
+
   </div>
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
 </div>
@@ -714,6 +754,20 @@ function showNotif(msg,type='success'){
   </div>
 </div>
 
+<!-- Modal de texto genérico (comentario de discusión / nota de descarte) -->
+<div id="text-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeTextModal()">
+  <div class="modal-box">
+    <div class="modal-title" id="text-modal-title"></div>
+    <div class="modal-sub" id="text-modal-sub" style="margin-top:6px"></div>
+    <textarea class="field" id="text-modal-input" style="margin-top:10px;min-height:90px"></textarea>
+    <div class="field-error" id="text-modal-err" style="display:none">Este campo es requerido.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="closeTextModal()">Cancelar</button>
+      <button class="btn btn-gold btn-sm" onclick="acceptTextModal()">✓ Guardar</button>
+    </div>
+  </div>
+</div>
+
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script>
 
 <script type="module">
@@ -728,6 +782,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { cargarProcesos, guardarProceso, cerrarProceso, groupByDay, startTickers, getAurCatalog, saveAurCatalog, cargarProcesosAUR, guardarProcesoAUR, cerrarProcesoAUR } from "./procesos.js";
+import { cargarMociones, agregarComentarioMocion, descartarMocion, convertirMocion, TIPOS_MOCION } from "./mociones.js";
 
 let session=null;
 let filterStatus='todas';
@@ -740,6 +795,9 @@ let processes=[];
 let aurProcesses=[];
 let aurCatalog=[];
 let draftAurCandidates={};
+let mociones=[];
+let mocionFilter='pendiente';
+let creatingFromMocionId=null;
 let resChartInstance=null;
 
 function renderResultsChart(labels,dataPct,colors){
@@ -796,7 +854,7 @@ async function doLogoutSecure(){
 window.doLogout = doLogoutSecure;
 
 function showPane(name){
-  ['dashboard','results','create','students','aur'].forEach(p=>{
+  ['dashboard','results','create','students','aur','mociones'].forEach(p=>{
     document.getElementById('pane-'+p).style.display=p===name?'block':'none';
   });
   document.getElementById('btn-home').style.display=name==='dashboard'?'none':'inline-block';
@@ -804,6 +862,7 @@ function showPane(name){
   if(name==='create') resetCreateForm();
   if(name==='dashboard') renderDashboard();
   if(name==='aur') initAurPane();
+  if(name==='mociones') renderMocionesPane();
 }
 
 // ---
@@ -965,6 +1024,38 @@ function acceptConfirmModal(){
 }
 window.closeConfirmModal=closeConfirmModal;
 window.acceptConfirmModal=acceptConfirmModal;
+
+// Modal de texto genérico (comentario de discusión de una moción, o nota
+// al descartarla) — mismo motivo que el modal de confirmación: evita
+// window.prompt(), que puede bloquear la página.
+let textModalCallback=null;
+let textModalRequired=true;
+function showTextModal(title,sub,placeholder,required,onSave){
+  document.getElementById('text-modal-title').textContent=title;
+  document.getElementById('text-modal-sub').textContent=sub||'';
+  const input=document.getElementById('text-modal-input');
+  input.value=''; input.placeholder=placeholder||'';
+  document.getElementById('text-modal-err').style.display='none';
+  textModalRequired=required;
+  textModalCallback=onSave;
+  document.getElementById('text-modal').style.display='flex';
+}
+function closeTextModal(){
+  document.getElementById('text-modal').style.display='none';
+  textModalCallback=null;
+}
+function acceptTextModal(){
+  const val=document.getElementById('text-modal-input').value.trim();
+  if(textModalRequired&&!val){
+    document.getElementById('text-modal-err').style.display='block';
+    return;
+  }
+  const cb=textModalCallback;
+  closeTextModal();
+  if(cb) cb(val);
+}
+window.closeTextModal=closeTextModal;
+window.acceptTextModal=acceptTextModal;
 
 let timerModalPid=null;
 let timerModalIsAur=false;
@@ -1128,6 +1219,10 @@ function resetCreateForm(){
   document.getElementById('cr-type').value='abierta';
   draftCandidates=[];
   ['cr-title-err','cr-desc-err','cr-quorum-err','cr-cand-err'].forEach(id=>document.getElementById(id).style.display='none');
+  creatingFromMocionId=null;
+  const personasOpt=document.querySelector('#cr-type option[value="personas"]');
+  if(personasOpt) personasOpt.disabled=false;
+  document.getElementById('cr-mocion-notice').style.display='none';
   onTypeChange(); renderCandidates();
 }
 function onTypeChange(){
@@ -1171,6 +1266,10 @@ async function submitCreate(){
   try{
     await guardarProceso(nuevo);
     draftCandidates=[];
+    if(creatingFromMocionId){
+      try{ await convertirMocion(creatingFromMocionId,nuevo.id,nuevo.type); }catch(e){ console.error(e); }
+      creatingFromMocionId=null;
+    }
     showNotif('Proceso de votación creado exitosamente.');
     await renderDashboard();
     showPane('dashboard');
@@ -1437,6 +1536,106 @@ async function submitAurCampaign(){
   await renderAurPane();
 }
 window.submitAurCampaign=submitAurCampaign;
+
+// ============================
+// MOCIONES
+// ============================
+// Nota: las mociones nunca generan Votaciones AUR — solo procesos
+// electorales normales (Abierta/Cerrada), vía el mismo formulario de
+// "Nuevo Proceso" que crea cualquier otro proceso.
+function setMocionFilter(val,btn){
+  mocionFilter=val;
+  document.querySelectorAll('#pane-mociones .btn-filter').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderMocionesList();
+}
+window.setMocionFilter=setMocionFilter;
+
+async function renderMocionesPane(){
+  mociones=await cargarMociones();
+  renderMocionesList();
+}
+
+function renderMocionesList(){
+  const el=document.getElementById('mociones-list');
+  const filtered=mocionFilter==='todas'?mociones:mociones.filter(m=>m.status===mocionFilter);
+  if(!filtered.length){
+    el.innerHTML='<div class="info-box info-info">No hay mociones en este filtro.</div>';
+    return;
+  }
+  el.innerHTML=filtered.map(m=>{
+    const tipo=TIPOS_MOCION.find(t=>t.id===m.tipo)||{label:m.tipo};
+    const badge=`<span class="badge badge-${m.tipo}">${tipo.label}</span>`;
+    const statusBadge=m.status==='convertida'?'<span class="badge badge-active">✓ Convertida a proceso</span>'
+      :m.status==='descartada'?'<span class="badge badge-closed">✕ Descartada</span>'
+      :'<span class="badge badge-open">⏳ Pendiente</span>';
+    const disc=(m.discusion||[]).map(c=>`<div class="mocion-comment"><div class="mocion-comment-meta">${c.authorRole==='teeuned'?'TEEUNED':'Fiscalía'} · ${fmtDate(c.createdAt)} ${fmtTime(c.createdAt)}</div>${c.texto}</div>`).join('');
+    const canAct=m.status==='pendiente';
+    const actions=`<div class="mocion-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openMocionComment('${m.id}')">💬 Comentar</button>
+      ${canAct?`<button class="btn btn-gold btn-sm" onclick="crearProcesoDesdeMocion('${m.id}')">🗳️ Crear Proceso</button>
+      <button class="btn btn-danger btn-sm" onclick="openMocionDiscard('${m.id}')">✕ Descartar</button>`:''}
+    </div>`;
+    const discardNote=m.status==='descartada'&&m.discardNote?`<div class="info-box info-danger" style="margin-top:8px">Motivo: ${m.discardNote}</div>`:'';
+    const linkedNote=m.status==='convertida'?`<div class="info-box info-success" style="margin-top:8px">🗳️ Se creó un proceso ${m.linkedProcessType==='abierta'?'Abierta':'Cerrada'} a partir de esta moción — véalo en Inicio.</div>`:'';
+    return `<div class="mocion-card tipo-${m.tipo}${m.status==='descartada'?' descartada':''}">
+      <div class="mocion-meta">${badge}${statusBadge}</div>
+      <div class="mocion-texto">${m.texto}</div>
+      <div class="mocion-foot">Presentada por ${m.voterName||'—'} (${m.carnet}) · ${fmtDate(m.createdAt)} ${fmtTime(m.createdAt)}</div>
+      ${discardNote}${linkedNote}
+      ${actions}
+      ${disc?`<div class="mocion-discusion">${disc}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openMocionComment(mocionId){
+  showTextModal('💬 Agregar comentario','Visible para TEEUNED, Fiscalía y todos los votantes.','',true,async(texto)=>{
+    try{
+      await agregarComentarioMocion(mocionId,{authorRole:'teeuned',texto,createdAt:new Date().toISOString()});
+      await renderMocionesPane();
+      showNotif('Comentario agregado.');
+    }catch(e){ console.error(e); showNotif('Error al agregar el comentario.','error'); }
+  });
+}
+window.openMocionComment=openMocionComment;
+
+function openMocionDiscard(mocionId){
+  showTextModal('✕ Descartar moción','Puede indicar un motivo (opcional).','Motivo (opcional)',false,async(nota)=>{
+    try{
+      await descartarMocion(mocionId,nota);
+      await renderMocionesPane();
+      showNotif('Moción descartada.');
+    }catch(e){ console.error(e); showNotif('Error al descartar la moción.','error'); }
+  });
+}
+window.openMocionDiscard=openMocionDiscard;
+
+// Precarga el formulario de "Nuevo Proceso" con el texto de la moción y
+// bloquea temporalmente el tipo "Personas" (una moción de orden/forma/
+// fondo se resuelve Abierta o Cerrada, no como elección de candidatos).
+// submitCreate() revisa creatingFromMocionId al guardar para enlazar el
+// proceso resultante con la moción (convertirMocion()).
+function crearProcesoDesdeMocion(mocionId){
+  const m=mociones.find(x=>x.id===mocionId);
+  if(!m) return;
+  // showPane('create') llama a resetCreateForm(), que limpia
+  // creatingFromMocionId — por eso se asigna DESPUÉS, no antes.
+  showPane('create');
+  creatingFromMocionId=mocionId;
+  const tipo=TIPOS_MOCION.find(t=>t.id===m.tipo)||{label:m.tipo};
+  document.getElementById('cr-title').value=tipo.label+' — '+m.texto.slice(0,80);
+  document.getElementById('cr-desc').value=m.texto;
+  const typeSel=document.getElementById('cr-type');
+  const personasOpt=typeSel.querySelector('option[value="personas"]');
+  if(personasOpt) personasOpt.disabled=true;
+  typeSel.value='abierta';
+  onTypeChange();
+  const notice=document.getElementById('cr-mocion-notice');
+  notice.style.display='block';
+  notice.textContent='📜 Creando proceso a partir de una '+tipo.label.toLowerCase()+' presentada por '+(m.voterName||'un votante')+'.';
+}
+window.crearProcesoDesdeMocion=crearProcesoDesdeMocion;
 
 async function initAurPane(){
   await ensureAurCatalogLoaded();

@@ -266,6 +266,29 @@ label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2
 .forgot-header p{color:rgba(255,255,255,.45);font-size:12px;margin-top:3px}
 .forgot-body{padding:20px 28px 24px}
 
+/* ── MODALES ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,33,73,.55);display:flex;align-items:center;justify-content:center;z-index:2000;padding:16px}
+.modal-box{background:var(--white);border-radius:var(--radius2);padding:22px 24px;max-width:420px;width:100%;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+.modal-title{font-size:17px;font-weight:700;color:var(--navy);font-family:'Playfair Display',serif;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:6px}
+
+/* ── MOCIONES ── */
+.mocion-card{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--border2);border-radius:var(--radius2);padding:16px 18px;margin-bottom:12px}
+.mocion-card.tipo-orden{border-left-color:var(--danger)}
+.mocion-card.tipo-forma{border-left-color:var(--warn)}
+.mocion-card.tipo-fondo{border-left-color:var(--success)}
+.mocion-card.descartada{opacity:.62}
+.mocion-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.mocion-texto{font-size:14px;line-height:1.55;color:var(--text);margin-bottom:8px;white-space:pre-wrap}
+.mocion-foot{font-size:11px;color:var(--text3)}
+.mocion-actions{display:flex;gap:7px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);flex-wrap:wrap}
+.mocion-discusion{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:8px}
+.mocion-comment{background:var(--cream2);border-radius:var(--radius);padding:8px 10px;font-size:13px}
+.mocion-comment-meta{font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.badge-orden{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.badge-forma{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.badge-fondo{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+
 /* ── RESPONSIVE ── */
 @media(max-width:700px){
   .main-content{padding:14px}
@@ -439,6 +462,7 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
         </div>
         <button class="btn btn-primary btn-sm" onclick="showPane('students')">👥 Ver Padrón</button>
         <button class="btn btn-primary btn-sm" onclick="showPane('aur')">🎓 AUR</button>
+        <button class="btn btn-primary btn-sm" onclick="showPane('mociones')">📜 Mociones</button>
       </div>
       <div class="stats-row" id="dash-stats"></div>
       <div class="filter-bar">
@@ -513,8 +537,35 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
       </div>
     </div>
 
+    <!-- ── MOCIONES ── -->
+    <div id="pane-mociones" style="display:none">
+      <div class="page-title">Mociones</div>
+      <div class="page-subtitle" style="margin-bottom:18px">Mociones presentadas por los votantes, en orden de prioridad parlamentaria (Orden → Forma → Fondo) y, dentro de cada tipo, por orden de presentación. Vista de supervisión — puede comentar, la creación/descarte del proceso corresponde a TEEUNED.</div>
+      <div class="filter-bar">
+        <button class="btn-filter active" onclick="setMocionFilter('pendiente',this)">Pendientes</button>
+        <button class="btn-filter" onclick="setMocionFilter('todas',this)">Todas</button>
+        <button class="btn-filter" onclick="setMocionFilter('convertida',this)">Convertidas</button>
+        <button class="btn-filter" onclick="setMocionFilter('descartada',this)">Descartadas</button>
+      </div>
+      <div id="mociones-list"></div>
+    </div>
+
   </div>
   <div class="app-footer">TEEUNED — FEUNED · Universidad Estatal a Distancia de Costa Rica · Sistema de Votación Electrónica v3.0</div>
+</div>
+
+<!-- Modal de texto genérico (comentario de discusión de una moción) -->
+<div id="text-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeTextModal()">
+  <div class="modal-box">
+    <div class="modal-title" id="text-modal-title"></div>
+    <div class="modal-sub" id="text-modal-sub" style="margin-top:6px"></div>
+    <textarea class="field" id="text-modal-input" style="margin-top:10px;min-height:90px"></textarea>
+    <div class="field-error" id="text-modal-err" style="display:none">Este campo es requerido.</div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="closeTextModal()">Cancelar</button>
+      <button class="btn btn-gold btn-sm" onclick="acceptTextModal()">✓ Guardar</button>
+    </div>
+  </div>
 </div>
 
 <script type="module">
@@ -522,6 +573,7 @@ import { db, auth } from "./firebase.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { cargarProcesos, groupByDay, startTickers, cargarProcesosAUR } from "./procesos.js";
+import { cargarMociones, agregarComentarioMocion, TIPOS_MOCION } from "./mociones.js";
 
 let session=null;
 let filterStatus='todas';
@@ -531,6 +583,8 @@ let currentProcId=null;
 let currentIsAur=false;
 let processes=[];
 let aurProcesses=[];
+let mociones=[];
+let mocionFilter='pendiente';
 let resChartInstance=null;
 
 function renderResultsChart(labels,dataPct,colors){
@@ -582,15 +636,94 @@ async function doLogoutSecure(){
 window.doLogout = doLogoutSecure;
 
 function showPane(name){
-  ['dashboard','results','students','aur'].forEach(p=>{
+  ['dashboard','results','students','aur','mociones'].forEach(p=>{
     document.getElementById('pane-'+p).style.display=p===name?'block':'none';
   });
   document.getElementById('btn-home').style.display=name==='dashboard'?'none':'inline-block';
   if(name==='students') renderStudents();
   if(name==='dashboard') renderDashboard();
   if(name==='aur') renderAurPane();
+  if(name==='mociones') renderMocionesPane();
 }
 window.showPane=showPane;
+
+// ============================
+// MOCIONES (solo lectura + comentarios — crear/descartar es de TEEUNED)
+// ============================
+let textModalCallback=null;
+function showTextModal(title,sub,placeholder,onSave){
+  document.getElementById('text-modal-title').textContent=title;
+  document.getElementById('text-modal-sub').textContent=sub||'';
+  const input=document.getElementById('text-modal-input');
+  input.value=''; input.placeholder=placeholder||'';
+  document.getElementById('text-modal-err').style.display='none';
+  textModalCallback=onSave;
+  document.getElementById('text-modal').style.display='flex';
+}
+function closeTextModal(){
+  document.getElementById('text-modal').style.display='none';
+  textModalCallback=null;
+}
+function acceptTextModal(){
+  const val=document.getElementById('text-modal-input').value.trim();
+  if(!val){ document.getElementById('text-modal-err').style.display='block'; return; }
+  const cb=textModalCallback;
+  closeTextModal();
+  if(cb) cb(val);
+}
+window.closeTextModal=closeTextModal;
+window.acceptTextModal=acceptTextModal;
+
+function setMocionFilter(val,btn){
+  mocionFilter=val;
+  document.querySelectorAll('#pane-mociones .btn-filter').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderMocionesList();
+}
+window.setMocionFilter=setMocionFilter;
+
+async function renderMocionesPane(){
+  mociones=await cargarMociones();
+  renderMocionesList();
+}
+
+function renderMocionesList(){
+  const el=document.getElementById('mociones-list');
+  const filtered=mocionFilter==='todas'?mociones:mociones.filter(m=>m.status===mocionFilter);
+  if(!filtered.length){
+    el.innerHTML='<div class="info-box info-info">No hay mociones en este filtro.</div>';
+    return;
+  }
+  el.innerHTML=filtered.map(m=>{
+    const tipo=TIPOS_MOCION.find(t=>t.id===m.tipo)||{label:m.tipo};
+    const badge=`<span class="badge badge-${m.tipo}">${tipo.label}</span>`;
+    const statusBadge=m.status==='convertida'?'<span class="badge badge-active">✓ Convertida a proceso</span>'
+      :m.status==='descartada'?'<span class="badge badge-closed">✕ Descartada</span>'
+      :'<span class="badge badge-open">⏳ Pendiente</span>';
+    const disc=(m.discusion||[]).map(c=>`<div class="mocion-comment"><div class="mocion-comment-meta">${c.authorRole==='teeuned'?'TEEUNED':'Fiscalía'} · ${fmtDate(c.createdAt)} ${fmtTime(c.createdAt)}</div>${c.texto}</div>`).join('');
+    const discardNote=m.status==='descartada'&&m.discardNote?`<div class="info-box info-danger" style="margin-top:8px">Motivo: ${m.discardNote}</div>`:'';
+    const linkedNote=m.status==='convertida'?`<div class="info-box info-success" style="margin-top:8px">🗳️ Se creó un proceso ${m.linkedProcessType==='abierta'?'Abierta':'Cerrada'} a partir de esta moción.</div>`:'';
+    return `<div class="mocion-card tipo-${m.tipo}${m.status==='descartada'?' descartada':''}">
+      <div class="mocion-meta">${badge}${statusBadge}</div>
+      <div class="mocion-texto">${m.texto}</div>
+      <div class="mocion-foot">Presentada por ${m.voterName||'—'} (${m.carnet}) · ${fmtDate(m.createdAt)} ${fmtTime(m.createdAt)}</div>
+      ${discardNote}${linkedNote}
+      <div class="mocion-actions"><button class="btn btn-secondary btn-sm" onclick="openMocionComment('${m.id}')">💬 Comentar</button></div>
+      ${disc?`<div class="mocion-discusion">${disc}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openMocionComment(mocionId){
+  showTextModal('💬 Agregar comentario','Visible para TEEUNED, Fiscalía y todos los votantes.','',async(texto)=>{
+    try{
+      await agregarComentarioMocion(mocionId,{authorRole:'fiscalia',texto,createdAt:new Date().toISOString()});
+      await renderMocionesPane();
+      showNotif('Comentario agregado.');
+    }catch(e){ console.error(e); showNotif('Error al agregar el comentario.','error'); }
+  });
+}
+window.openMocionComment=openMocionComment;
 
 // ---
 function setFilter(val,btn){

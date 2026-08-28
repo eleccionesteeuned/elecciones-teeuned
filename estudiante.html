@@ -163,6 +163,37 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
 .empty-icon{font-size:32px;margin-bottom:10px;opacity:.5}
 .empty-title{font-size:15px;font-weight:600;margin-bottom:5px}
 
+/* ── FORM (usado por Mociones) ── */
+.form-group{margin-bottom:16px}
+.field{width:100%;padding:10px 13px;border:1px solid var(--border);border-radius:var(--radius);background:var(--cream);color:var(--text);font-size:15px;font-family:inherit}
+textarea.field{resize:vertical;min-height:88px;line-height:1.5}
+label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px}
+.field-error{font-size:12px;color:var(--danger);margin-top:4px;display:none}
+
+/* ── MOCIONES ── */
+.mocion-card{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--border2);border-radius:var(--radius2);padding:16px 18px;margin-bottom:12px}
+.mocion-card.tipo-orden{border-left-color:var(--danger)}
+.mocion-card.tipo-forma{border-left-color:var(--warn)}
+.mocion-card.tipo-fondo{border-left-color:var(--success)}
+.mocion-card.descartada{opacity:.62}
+.mocion-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.mocion-texto{font-size:14px;line-height:1.55;color:var(--text);margin-bottom:8px;white-space:pre-wrap}
+.mocion-foot{font-size:11px;color:var(--text3)}
+.mocion-discusion{margin-top:10px;padding-top:10px;border-top:1px dashed var(--border);display:flex;flex-direction:column;gap:8px}
+.mocion-comment{background:var(--cream2);border-radius:var(--radius);padding:8px 10px;font-size:13px}
+.mocion-comment-meta{font-size:11px;color:var(--text2);margin-bottom:3px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.badge-orden{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-border)}
+.badge-forma{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-border)}
+.badge-fondo{background:var(--success-bg);color:var(--success);border:1px solid var(--success-border)}
+.tipo-pick{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.tipo-pick label{flex:1;min-width:150px;border:1.5px solid var(--border);border-radius:var(--radius2);padding:10px 12px;cursor:pointer;transition:border-color .15s,background .15s}
+.tipo-pick input{margin-right:6px}
+.tipo-pick label.tp-orden:has(input:checked){border-color:var(--danger);background:var(--danger-bg)}
+.tipo-pick label.tp-forma:has(input:checked){border-color:var(--warn);background:var(--warn-bg)}
+.tipo-pick label.tp-fondo:has(input:checked){border-color:var(--success);background:var(--success-bg)}
+.tipo-pick .tp-title{font-weight:700;font-size:13px;display:block}
+.tipo-pick .tp-desc{font-size:11px;color:var(--text2);display:block;margin-top:2px}
+
 /* ── RESPONSIVE ── */
 @media(max-width:700px){
   .main-content{padding:14px}
@@ -183,6 +214,7 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
         <div class="nav-user-name" id="nav-name"></div>
         <div class="nav-user-role">Estudiante UNED</div>
       </div>
+      <button class="btn-nav" onclick="showPane('mociones')">📜 Mociones</button>
       <button class="btn-nav" id="btn-back-app" onclick="goHome()" style="display:none">&#8592; Inicio</button>
       <button class="btn-nav" onclick="doLogout()">Cerrar Sesion</button>
     </div>
@@ -296,6 +328,35 @@ input:focus,select:focus,textarea:focus{border-color:var(--gold)!important;box-s
           <div id="res-quorum"></div>
         </div>
       </div>
+    </div>
+
+    <!-- ── MOCIONES ── -->
+    <div id="pane-mociones" style="display:none">
+      <div class="page-title">Mociones</div>
+      <div class="page-subtitle" style="margin-bottom:18px">Presente una moción de orden, de forma o de fondo. Todas las mociones (de cualquier votante) y su discusión con TEEUNED/Fiscalía son visibles aquí.</div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-header-title">+ Presentar Moción</span></div>
+        <div class="card-body">
+          <div class="tipo-pick" id="mocion-tipo-pick"></div>
+          <div class="form-group">
+            <label class="field-label">Texto de la moción *</label>
+            <textarea class="field" id="mocion-texto" placeholder="Escriba aquí su moción..."></textarea>
+            <div class="field-error" id="mocion-err"></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end">
+            <button class="btn btn-gold" onclick="submitMocion()">✓ Presentar Moción</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="filter-bar">
+        <button class="btn-filter active" onclick="setMocionFilter('pendiente',this)">Pendientes</button>
+        <button class="btn-filter" onclick="setMocionFilter('todas',this)">Todas</button>
+        <button class="btn-filter" onclick="setMocionFilter('convertida',this)">Convertidas</button>
+        <button class="btn-filter" onclick="setMocionFilter('descartada',this)">Descartadas</button>
+      </div>
+      <div id="mociones-list"></div>
     </div>
 
   </div>
@@ -463,6 +524,7 @@ window.PALETTE = PALETTE;
 <script type="module">
 
 import { cargarProcesos, registrarVoto, groupByDay, startTickers, cargarProcesosAUR, registrarVotoAUR } from "./procesos.js";
+import { cargarMociones, presentarMocion, TIPOS_MOCION } from "./mociones.js";
 import { auth } from "./firebase.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -477,6 +539,9 @@ var processes=[];
 var aurProcesses=[];
 var studentSede=null;
 var studentRegion=null;
+var mociones=[];
+var mocionFilter='pendiente';
+var mocionTipoSel='orden';
 var resChartInstance=null;
 
 // Refresca automáticamente cada 5s los datos y gráficos de votaciones
@@ -596,10 +661,99 @@ async function doLogoutSecure(){
 window.doLogout = doLogoutSecure;
 
 function showPane(name){
-  ['dashboard','vote','results'].forEach(function(p){
+  ['dashboard','vote','results','mociones'].forEach(function(p){
     document.getElementById('pane-'+p).style.display=p===name?'block':'none';
   });
   document.getElementById('btn-back-app').style.display=name==='dashboard'?'none':'inline-block';
+  if(name==='mociones') renderMocionesPane();
+}
+window.showPane=showPane;
+
+// ============================
+// MOCIONES
+// ============================
+function renderMocionTipoPick(){
+  var el=document.getElementById('mocion-tipo-pick');
+  el.innerHTML=TIPOS_MOCION.map(function(t){
+    var checked=mocionTipoSel===t.id?'checked':'';
+    return '<label class="tp-'+t.id+'"><input type="radio" name="mocion-tipo" value="'+t.id+'" '+checked+' onchange="setMocionTipo(\''+t.id+'\')"><span class="tp-title">'+t.label+'</span><span class="tp-desc">'+t.desc+'</span></label>';
+  }).join('');
+}
+function setMocionTipo(id){ mocionTipoSel=id; renderMocionTipoPick(); }
+window.setMocionTipo=setMocionTipo;
+
+async function submitMocion(){
+  var errEl=document.getElementById('mocion-err');
+  errEl.style.display='none';
+  var texto=document.getElementById('mocion-texto').value.trim();
+  if(!texto){
+    errEl.textContent='Escriba el texto de la moción.';
+    errEl.style.display='block';
+    return;
+  }
+  var m={
+    id:'moc'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
+    carnet:currentStudent.carnet,
+    voterName:currentStudent.name,
+    tipo:mocionTipoSel,
+    texto:texto,
+    status:'pendiente',
+    createdAt:new Date().toISOString(),
+  };
+  try{
+    await presentarMocion(m);
+    document.getElementById('mocion-texto').value='';
+    showNotif('Moción presentada correctamente.');
+    await renderMocionesPane();
+  }catch(e){
+    console.error(e);
+    showNotif('Error al presentar la moción.','error');
+  }
+}
+window.submitMocion=submitMocion;
+
+function setMocionFilter(val,btn){
+  mocionFilter=val;
+  document.querySelectorAll('#pane-mociones .btn-filter').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  renderMocionesList();
+}
+window.setMocionFilter=setMocionFilter;
+
+async function renderMocionesPane(){
+  renderMocionTipoPick();
+  mociones=await cargarMociones();
+  renderMocionesList();
+}
+
+function renderMocionesList(){
+  var el=document.getElementById('mociones-list');
+  var filtered=mocionFilter==='todas'?mociones:mociones.filter(function(m){return m.status===mocionFilter;});
+  if(!filtered.length){
+    el.innerHTML='<div class="info-box info-info">No hay mociones en este filtro.</div>';
+    return;
+  }
+  el.innerHTML=filtered.map(function(m){
+    var tipoDef=null;
+    for(var i=0;i<TIPOS_MOCION.length;i++){ if(TIPOS_MOCION[i].id===m.tipo){ tipoDef=TIPOS_MOCION[i]; break; } }
+    var tipoLabel=tipoDef?tipoDef.label:m.tipo;
+    var badge='<span class="badge badge-'+m.tipo+'">'+tipoLabel+'</span>';
+    var statusBadge=m.status==='convertida'?'<span class="badge badge-active">&#10003; Convertida a proceso</span>'
+      :m.status==='descartada'?'<span class="badge badge-closed">&#10005; Descartada</span>'
+      :'<span class="badge badge-open">&#8987; Pendiente</span>';
+    var disc=(m.discusion||[]).map(function(c){
+      return '<div class="mocion-comment"><div class="mocion-comment-meta">'+(c.authorRole==='teeuned'?'TEEUNED':'Fiscalía')+' · '+fmtDate(c.createdAt)+' '+fmtTime(c.createdAt)+'</div>'+c.texto+'</div>';
+    }).join('');
+    var discardNote=(m.status==='descartada'&&m.discardNote)?'<div class="info-box info-danger" style="margin-top:8px">Motivo: '+m.discardNote+'</div>':'';
+    var linkedNote=m.status==='convertida'?'<div class="info-box info-success" style="margin-top:8px">Se creó un proceso ('+(m.linkedProcessType==='abierta'?'Abierta':'Cerrada')+') a partir de esta moción — puede verlo y votarlo en Inicio.</div>':'';
+    return '<div class="mocion-card tipo-'+m.tipo+(m.status==='descartada'?' descartada':'')+'">'
+      +'<div class="mocion-meta">'+badge+statusBadge+'</div>'
+      +'<div class="mocion-texto">'+m.texto+'</div>'
+      +'<div class="mocion-foot">Presentada por '+(m.voterName||'—')+' ('+m.carnet+') · '+fmtDate(m.createdAt)+' '+fmtTime(m.createdAt)+'</div>'
+      +discardNote+linkedNote
+      +(disc?'<div class="mocion-discusion">'+disc+'</div>':'')
+      +'</div>';
+  }).join('');
 }
 
 function goHome(){

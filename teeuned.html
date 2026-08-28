@@ -378,17 +378,24 @@ function fmtDate(iso){const d=new Date(iso);return isNaN(d)?'Fecha no disponible
 function fmtTime(iso){const d=new Date(iso);return isNaN(d)?'—':d.toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function fmtDateShort(iso){const d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
 function getResults(p){
+  // totalPadron es una "foto" del padrón elegible tomada al crear el
+  // proceso (ver submitCreate()/submitAurCampaign()) — procesos creados
+  // antes de este campo no lo tienen, así que se degrada sin mostrar
+  // "No Votó" (hasPadron=false) en vez de calcular con un total falso.
+  const total=p.votes.length;
+  const hasPadron=typeof p.totalPadron==='number'&&p.totalPadron>0;
+  const noVotaron=hasPadron?Math.max(0,p.totalPadron-total):0;
+  const base=hasPadron?p.totalPadron:total;
+  const pct=n=>base>0?Math.round(n/base*100):0;
   if(p.type==='personas'&&p.candidates){
     const counts={};p.candidates.forEach(c=>counts[c.id]=0);
     p.votes.forEach(v=>{if(counts[v.choice]!==undefined)counts[v.choice]++;});
-    const total=p.votes.length;
-    return{mode:'personas',candidates:p.candidates,counts,total,pct:n=>total>0?Math.round(n/total*100):0};
+    return{mode:'personas',candidates:p.candidates,counts,total,totalPadron:p.totalPadron||0,hasPadron,noVotaron,pct};
   }
   const favor=p.votes.filter(v=>v.choice==='a_favor').length;
   const contra=p.votes.filter(v=>v.choice==='en_contra').length;
   const abs=p.votes.filter(v=>v.choice==='abstencion').length;
-  const total=p.votes.length;
-  return{mode:'standard',favor,contra,abs,total,pct:n=>total>0?Math.round(n/total*100):0};
+  return{mode:'standard',favor,contra,abs,total,totalPadron:p.totalPadron||0,hasPadron,noVotaron,pct};
 }
 
 // ---
@@ -1050,18 +1057,24 @@ function renderResults(p){
   document.getElementById('res-actions').innerHTML=actHTML;
 
   const part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
-  document.getElementById('res-stats').innerHTML=[{l:'Quórum Máximo',v:p.quorum,i:'👥'},{l:'Votos Emitidos',v:r.total,i:'🗳️'},{l:'Participación',v:part+'%',i:'📊'}]
+  const statList=[{l:'Quórum Máximo',v:p.quorum,i:'👥'},{l:'Votos Emitidos',v:r.total,i:'🗳️'},{l:'Participación',v:part+'%',i:'📊'}];
+  if(r.hasPadron) statList.push({l:'No Votaron',v:r.noVotaron,i:'🚫'});
+  document.getElementById('res-stats').innerHTML=statList
     .map(s=>`<div class="result-stat"><div style="font-size:18px;margin-bottom:4px">${s.i}</div><div class="result-stat-value">${s.v}</div><div class="result-stat-label">${s.l}</div></div>`).join('');
 
   let bars='';
+  const noVotoBar={l:'No Votó',c:r.noVotaron,col:'#8a97b2'};
   if(r.mode==='personas'){
-    bars=r.candidates.map((c,i)=>{const cnt=r.counts[c.id]||0,pct=r.pct(cnt),col=PALETTE[i%PALETTE.length];
-      return`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${c.name}</span><span class="result-bar-count" style="color:${col}">${cnt} <span style="font-size:12px;color:var(--text2)">(${pct}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${pct}%;background:${col}"></div></div></div>`;}).join('');
-    renderResultsChart(r.candidates.map(c=>c.name), r.candidates.map((c,i)=>r.pct(r.counts[c.id]||0)), r.candidates.map((c,i)=>PALETTE[i%PALETTE.length]));
+    const items=r.candidates.map((c,i)=>({l:c.name,c:r.counts[c.id]||0,col:PALETTE[i%PALETTE.length]}));
+    if(r.hasPadron) items.push(noVotoBar);
+    bars=items.map(b=>{const pct=r.pct(b.c);
+      return`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${b.l}</span><span class="result-bar-count" style="color:${b.col}">${b.c} <span style="font-size:12px;color:var(--text2)">(${pct}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${pct}%;background:${b.col}"></div></div></div>`;}).join('');
+    renderResultsChart(items.map(b=>b.l), items.map(b=>r.pct(b.c)), items.map(b=>b.col));
   } else {
-    bars=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstención',c:r.abs,col:'#8a6e00'}]
-      .map(b=>`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${b.l}</span><span class="result-bar-count" style="color:${b.col}">${b.c} <span style="font-size:12px;color:var(--text2)">(${r.pct(b.c)}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${r.pct(b.c)}%;background:${b.col}"></div></div></div>`).join('');
-    renderResultsChart(['A Favor','En Contra','Abstención'], [r.pct(r.favor),r.pct(r.contra),r.pct(r.abs)], ['#1a6b3c','#8b1a1a','#8a6e00']);
+    const items=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstención',c:r.abs,col:'#8a6e00'}];
+    if(r.hasPadron) items.push(noVotoBar);
+    bars=items.map(b=>`<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">${b.l}</span><span class="result-bar-count" style="color:${b.col}">${b.c} <span style="font-size:12px;color:var(--text2)">(${r.pct(b.c)}%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:${r.pct(b.c)}%;background:${b.col}"></div></div></div>`).join('');
+    renderResultsChart(items.map(b=>b.l), items.map(b=>r.pct(b.c)), items.map(b=>b.col));
   }
   document.getElementById('res-bars').innerHTML=bars;
 
@@ -1099,8 +1112,9 @@ function downloadExcel(pid,isAur){
     ['Creado',fmtDate(p.createdAt)],[],
     ['QUÓRUM','VOTOS EMITIDOS','PARTICIPACIÓN'],[p.quorum,r.total,part+'%'],[],
   ];
-  if(isPersonas){rows.push(['CANDIDATO','VOTOS','%']);r.candidates.forEach(c=>rows.push([c.name,r.counts[c.id]||0,r.pct(r.counts[c.id]||0)+'%']));}
-  else{rows.push(['OPCIÓN','VOTOS','%']);rows.push(['A Favor',r.favor,r.pct(r.favor)+'%']);rows.push(['En Contra',r.contra,r.pct(r.contra)+'%']);rows.push(['Abstención',r.abs,r.pct(r.abs)+'%']);}
+  if(r.hasPadron) rows.push(['PADRÓN TOTAL',r.totalPadron],['NO VOTARON',r.noVotaron],[]);
+  if(isPersonas){rows.push(['CANDIDATO','VOTOS','%']);r.candidates.forEach(c=>rows.push([c.name,r.counts[c.id]||0,r.pct(r.counts[c.id]||0)+'%']));if(r.hasPadron)rows.push(['No Votó',r.noVotaron,r.pct(r.noVotaron)+'%']);}
+  else{rows.push(['OPCIÓN','VOTOS','%']);rows.push(['A Favor',r.favor,r.pct(r.favor)+'%']);rows.push(['En Contra',r.contra,r.pct(r.contra)+'%']);rows.push(['Abstención',r.abs,r.pct(r.abs)+'%']);if(r.hasPadron)rows.push(['No Votó',r.noVotaron,r.pct(r.noVotaron)+'%']);}
   rows.push([],[],['Exportado',new Date().toLocaleString('es-CR')]);
   const ws1=XLSX.utils.aoa_to_sheet(rows);ws1['!cols']=[{wch:28},{wch:45},{wch:18}];
   XLSX.utils.book_append_sheet(wb,ws1,'Resumen');
@@ -1148,7 +1162,12 @@ async function submitCreate(){
   if(!ok) return;
   const endsRaw=document.getElementById('cr-ends').value;
   const endsAt=endsRaw?new Date(endsRaw).toISOString():null;
-  const nuevo={id:'p'+Date.now(),title,description:desc,type,quorum,status:'activa',createdAt:new Date().toISOString(),endsAt,candidates:type==='personas'?[...draftCandidates]:null,votes:[],votedCarnets:[]};
+  // Se guarda una "foto" del tamaño del padrón general al momento de crear
+  // el proceso — así los resultados pueden mostrar cuántos NO votaron, sin
+  // que ese número cambie después si se agregan/eliminan estudiantes.
+  let totalPadron=0;
+  try{ totalPadron=(await getDocs(collection(db,"padron"))).size; }catch(e){ console.error(e); }
+  const nuevo={id:'p'+Date.now(),title,description:desc,type,quorum,status:'activa',createdAt:new Date().toISOString(),endsAt,candidates:type==='personas'?[...draftCandidates]:null,totalPadron,votes:[],votedCarnets:[]};
   try{
     await guardarProceso(nuevo);
     draftCandidates=[];
@@ -1380,6 +1399,15 @@ async function submitAurCampaign(){
   const aurGroupId='aurg'+Date.now();
   const now=new Date().toISOString();
   const failed=[];
+  // Foto del padrón AUR elegible por sede/región al momento de crear cada
+  // elección — igual que en submitCreate(), para poder mostrar luego
+  // cuántos NO votaron sin depender del tamaño actual (cambiante) del
+  // padrón. Sede: cuenta directa por s.sede. Región: cuenta por la región
+  // que el catálogo asigna a la sede de cada estudiante (no se guarda
+  // "región" en cada entrada del padrón AUR, se resuelve aquí).
+  const aurPadronList=await getAurPadron();
+  const sedeToRegion={};
+  aurCatalog.forEach(c=>{ sedeToRegion[c.name]=c.region||null; });
   for(const [key,text] of entries){
     const [kind,name]=key.split('::');
     const names=text.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -1389,12 +1417,15 @@ async function submitAurCampaign(){
     // no se repite la palabra en el título/descripción generados.
     const alreadyPrefixed=new RegExp('^'+(kind==='sede'?'sede':'región'),'i').test(name);
     const label=alreadyPrefixed?name:(kind==='sede'?'Sede ':'Región ')+name;
+    const totalPadron=kind==='sede'
+      ? aurPadronList.filter(s=>s.sede===name).length
+      : aurPadronList.filter(s=>sedeToRegion[s.sede]===name).length;
     const proc={
       id:'aurp'+Date.now()+'_'+Math.random().toString(36).substr(2,6),
       aurGroupId, scope:{kind,name},
       title:'Representante Estudiantil AUR — '+label,
       description:'Elección de representante estudiantil ante la Asamblea Universitaria Representativa por '+label+'.',
-      type:'personas', quorum, status:'activa', createdAt:now, endsAt, candidates,
+      type:'personas', quorum, status:'activa', createdAt:now, endsAt, candidates, totalPadron,
     };
     try{ await guardarProcesoAUR(proc); }catch(e){ console.error(e); failed.push(name+' (error al guardar)'); }
   }

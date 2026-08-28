@@ -404,17 +404,23 @@ function fmtDate(iso){var d=new Date(iso);return isNaN(d)?'Fecha no disponible':
 function fmtTime(iso){var d=new Date(iso);return isNaN(d)?'—':d.toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function fmtDateShort(iso){var d=new Date(iso);return isNaN(d)?'—':d.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
 function getResults(p){
+  // totalPadron es una "foto" del padrón elegible tomada al crear el
+  // proceso (ver teeuned.html) — procesos previos a este campo no lo
+  // tienen y se degradan sin mostrar "No Votó" (hasPadron=false).
+  var total=p.votes.length;
+  var hasPadron=typeof p.totalPadron==='number'&&p.totalPadron>0;
+  var noVotaron=hasPadron?Math.max(0,p.totalPadron-total):0;
+  var base=hasPadron?p.totalPadron:total;
+  var pct=function(n){return base>0?Math.round(n/base*100):0;};
   if(p.type==='personas'&&p.candidates){
     var counts={};p.candidates.forEach(function(c){counts[c.id]=0;});
     p.votes.forEach(function(v){if(counts[v.choice]!==undefined)counts[v.choice]++;});
-    var total=p.votes.length;
-    return{mode:'personas',candidates:p.candidates,counts:counts,total:total,pct:function(n){return total>0?Math.round(n/total*100):0;}};
+    return{mode:'personas',candidates:p.candidates,counts:counts,total:total,totalPadron:p.totalPadron||0,hasPadron:hasPadron,noVotaron:noVotaron,pct:pct};
   }
   var favor=p.votes.filter(function(v){return v.choice==='a_favor';}).length;
   var contra=p.votes.filter(function(v){return v.choice==='en_contra';}).length;
   var abs=p.votes.filter(function(v){return v.choice==='abstencion';}).length;
-  var total=p.votes.length;
-  return{mode:'standard',favor:favor,contra:contra,abs:abs,total:total,pct:function(n){return total>0?Math.round(n/total*100):0;}};
+  return{mode:'standard',favor:favor,contra:contra,abs:abs,total:total,totalPadron:p.totalPadron||0,hasPadron:hasPadron,noVotaron:noVotaron,pct:pct};
 }
 
 // NOTIFICATIONS
@@ -859,21 +865,28 @@ function openResults(pid,isAur){
   else notice='<div class="info-box info-warn">Votacion Abierta. Resultados publicos.</div>';
   document.getElementById('res-notice').innerHTML=notice;
   var part=p.quorum>0?Math.round(r.total/p.quorum*100):0;
-  document.getElementById('res-stats').innerHTML=[{l:'Quorum Maximo',v:p.quorum,i:'&#128101;'},{l:'Votos Emitidos',v:r.total,i:'&#128499;'},{l:'Participacion',v:part+'%',i:'&#128202;'}].map(function(s){
+  var statList=[{l:'Quorum Maximo',v:p.quorum,i:'&#128101;'},{l:'Votos Emitidos',v:r.total,i:'&#128499;'},{l:'Participacion',v:part+'%',i:'&#128202;'}];
+  if(r.hasPadron) statList.push({l:'No Votaron',v:r.noVotaron,i:'&#128683;'});
+  document.getElementById('res-stats').innerHTML=statList.map(function(s){
     return '<div class="result-stat"><div style="font-size:18px;margin-bottom:4px">'+s.i+'</div><div class="result-stat-value">'+s.v+'</div><div class="result-stat-label">'+s.l+'</div></div>';
   }).join('');
   var bars='';
+  var noVotoBar={l:'No Votó',c:r.noVotaron,col:'#8a97b2'};
   if(r.mode==='personas'){
-    r.candidates.forEach(function(c,i){
-      var cnt=r.counts[c.id]||0,pct=r.pct(cnt),col=PALETTE[i%PALETTE.length];
-      bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+c.name+'</span><span class="result-bar-count" style="color:'+col+'">'+cnt+' <span style="font-size:12px;color:var(--text2)">('+pct+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+pct+'%;background:'+col+'"></div></div></div>';
+    var items=r.candidates.map(function(c,i){return{l:c.name,c:r.counts[c.id]||0,col:PALETTE[i%PALETTE.length]};});
+    if(r.hasPadron) items.push(noVotoBar);
+    items.forEach(function(b){
+      var pct=r.pct(b.c);
+      bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+b.l+'</span><span class="result-bar-count" style="color:'+b.col+'">'+b.c+' <span style="font-size:12px;color:var(--text2)">('+pct+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+pct+'%;background:'+b.col+'"></div></div></div>';
     });
-    renderResultsChart(r.candidates.map(function(c){return c.name;}), r.candidates.map(function(c){return r.pct(r.counts[c.id]||0);}), r.candidates.map(function(c,i){return PALETTE[i%PALETTE.length];}));
+    renderResultsChart(items.map(function(b){return b.l;}), items.map(function(b){return r.pct(b.c);}), items.map(function(b){return b.col;}));
   }else{
-    [{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}].forEach(function(b){
+    var items2=[{l:'A Favor',c:r.favor,col:'#1a6b3c'},{l:'En Contra',c:r.contra,col:'#8b1a1a'},{l:'Abstencion',c:r.abs,col:'#8a6e00'}];
+    if(r.hasPadron) items2.push(noVotoBar);
+    items2.forEach(function(b){
       bars+='<div class="result-bar-row"><div class="result-bar-header"><span class="result-bar-name">'+b.l+'</span><span class="result-bar-count" style="color:'+b.col+'">'+b.c+' <span style="font-size:12px;color:var(--text2)">('+r.pct(b.c)+'%)</span></span></div><div class="result-bar-track"><div class="result-bar-fill" style="width:'+r.pct(b.c)+'%;background:'+b.col+'"></div></div></div>';
     });
-    renderResultsChart(['A Favor','En Contra','Abstencion'], [r.pct(r.favor),r.pct(r.contra),r.pct(r.abs)], ['#1a6b3c','#8b1a1a','#8a6e00']);
+    renderResultsChart(items2.map(function(b){return b.l;}), items2.map(function(b){return r.pct(b.c);}), items2.map(function(b){return b.col;}));
   }
   document.getElementById('res-bars').innerHTML=bars;
   var hasQ=r.total>=p.quorum;

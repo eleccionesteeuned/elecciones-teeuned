@@ -85,17 +85,20 @@ function fmtDate(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-di
 function fmtTime(iso){return new Date(iso).toLocaleTimeString('es-CR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 function fmtDateShort(iso){return new Date(iso).toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'});}
 function getResults(p){
+  const total=p.votes.length;
+  const hasPadron=typeof p.totalPadron==='number'&&p.totalPadron>0;
+  const noVotaron=hasPadron?Math.max(0,p.totalPadron-total):0;
+  const base=hasPadron?p.totalPadron:total;
+  const pct=n=>base>0?Math.round(n/base*100):0;
   if(p.type==='personas'&&p.candidates){
     const counts={};p.candidates.forEach(c=>counts[c.id]=0);
     p.votes.forEach(v=>{if(counts[v.choice]!==undefined)counts[v.choice]++;});
-    const total=p.votes.length;
-    return{mode:'personas',candidates:p.candidates,counts,total,pct:n=>total>0?Math.round(n/total*100):0};
+    return{mode:'personas',candidates:p.candidates,counts,total,totalPadron:p.totalPadron||0,hasPadron,noVotaron,pct};
   }
   const favor=p.votes.filter(v=>v.choice==='a_favor').length;
   const contra=p.votes.filter(v=>v.choice==='en_contra').length;
   const abs=p.votes.filter(v=>v.choice==='abstencion').length;
-  const total=p.votes.length;
-  return{mode:'standard',favor,contra,abs,total,pct:n=>total>0?Math.round(n/total*100):0};
+  return{mode:'standard',favor,contra,abs,total,totalPadron:p.totalPadron||0,hasPadron,noVotaron,pct};
 }
 
 // ── EMAIL ─────────────────────────────────────────────────────────

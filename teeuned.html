@@ -701,8 +701,13 @@ function showNotif(msg,type='success'){
 
     <!-- ── MOCIONES ── -->
     <div id="pane-mociones" style="display:none">
-      <div class="page-title">Mociones</div>
-      <div class="page-subtitle" style="margin-bottom:18px">Mociones presentadas por los votantes, en orden de prioridad parlamentaria (Orden → Forma → Fondo) y, dentro de cada tipo, por orden de presentación.</div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="page-title">Mociones</div>
+          <div class="page-subtitle" style="margin-bottom:18px">Mociones presentadas por los votantes, en orden de prioridad parlamentaria (Orden → Forma → Fondo) y, dentro de cada tipo, por orden de presentación.</div>
+        </div>
+        <button class="btn btn-sm" id="mociones-toggle-btn" onclick="toggleMocionesEnabled()"></button>
+      </div>
       <div class="filter-bar">
         <button class="btn-filter active" onclick="setMocionFilter('pendiente',this)">Pendientes</button>
         <button class="btn-filter" onclick="setMocionFilter('todas',this)">Todas</button>
@@ -782,7 +787,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { cargarProcesos, guardarProceso, cerrarProceso, groupByDay, startTickers, getAurCatalog, saveAurCatalog, cargarProcesosAUR, guardarProcesoAUR, cerrarProcesoAUR } from "./procesos.js";
-import { cargarMociones, agregarComentarioMocion, descartarMocion, convertirMocion, TIPOS_MOCION } from "./mociones.js";
+import { cargarMociones, agregarComentarioMocion, descartarMocion, convertirMocion, getMocionesConfig, setMocionesEnabled, TIPOS_MOCION } from "./mociones.js";
 
 let session=null;
 let filterStatus='todas';
@@ -798,6 +803,7 @@ let draftAurCandidates={};
 let mociones=[];
 let mocionFilter='pendiente';
 let creatingFromMocionId=null;
+let mocionesEnabled=true;
 let resChartInstance=null;
 
 function renderResultsChart(labels,dataPct,colors){
@@ -1552,9 +1558,34 @@ function setMocionFilter(val,btn){
 window.setMocionFilter=setMocionFilter;
 
 async function renderMocionesPane(){
+  const cfg=await getMocionesConfig();
+  mocionesEnabled=cfg.enabled;
+  renderMocionesToggleBtn();
   mociones=await cargarMociones();
   renderMocionesList();
 }
+
+function renderMocionesToggleBtn(){
+  const btn=document.getElementById('mociones-toggle-btn');
+  btn.className='btn btn-sm '+(mocionesEnabled?'btn-danger':'btn-gold');
+  btn.textContent=mocionesEnabled?'🔒 Desactivar Mociones':'🔓 Activar Mociones';
+}
+
+function toggleMocionesEnabled(){
+  const next=!mocionesEnabled;
+  const msg=next
+    ? '¿Reactivar la posibilidad de que los votantes presenten mociones nuevas?'
+    : '¿Desactivar la posibilidad de que los votantes presenten mociones nuevas? Las ya presentadas y su discusión se siguen viendo con normalidad.';
+  showConfirmModal(msg,async()=>{
+    try{
+      await setMocionesEnabled(next);
+      mocionesEnabled=next;
+      renderMocionesToggleBtn();
+      showNotif(next?'Mociones activadas.':'Mociones desactivadas.');
+    }catch(e){ console.error(e); showNotif('Error al cambiar el estado de las mociones.','error'); }
+  });
+}
+window.toggleMocionesEnabled=toggleMocionesEnabled;
 
 function renderMocionesList(){
   const el=document.getElementById('mociones-list');

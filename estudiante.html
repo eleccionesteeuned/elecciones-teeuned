@@ -335,7 +335,8 @@ label.field-label{display:block;font-size:11px;font-weight:600;color:var(--text2
       <div class="page-title">Mociones</div>
       <div class="page-subtitle" style="margin-bottom:18px">Presente una moción de orden, de forma o de fondo. Todas las mociones (de cualquier votante) y su discusión con TEEUNED/Fiscalía son visibles aquí.</div>
 
-      <div class="card">
+      <div class="info-box info-warn" id="mociones-disabled-notice" style="display:none">🔒 El TEEUNED desactivó temporalmente la presentación de mociones nuevas. Las ya presentadas siguen visibles abajo.</div>
+      <div class="card" id="mocion-form-card">
         <div class="card-header"><span class="card-header-title">+ Presentar Moción</span></div>
         <div class="card-body">
           <div class="tipo-pick" id="mocion-tipo-pick"></div>
@@ -524,7 +525,7 @@ window.PALETTE = PALETTE;
 <script type="module">
 
 import { cargarProcesos, registrarVoto, groupByDay, startTickers, cargarProcesosAUR, registrarVotoAUR } from "./procesos.js";
-import { cargarMociones, presentarMocion, TIPOS_MOCION } from "./mociones.js";
+import { cargarMociones, presentarMocion, getMocionesConfig, TIPOS_MOCION } from "./mociones.js";
 import { auth } from "./firebase.js";
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -722,6 +723,9 @@ window.setMocionFilter=setMocionFilter;
 
 async function renderMocionesPane(){
   renderMocionTipoPick();
+  var cfg=await getMocionesConfig();
+  document.getElementById('mocion-form-card').style.display=cfg.enabled?'block':'none';
+  document.getElementById('mociones-disabled-notice').style.display=cfg.enabled?'none':'block';
   mociones=await cargarMociones();
   renderMocionesList();
 }

@@ -120,16 +120,23 @@ service cloud.firestore {
     // Mociones: cualquier estudiante autenticado puede presentar una
     // (de orden/forma/fondo) — validado igual que un voto: el UID de
     // sesión debe coincidir con el authUid guardado en el padrón para el
-    // carnet declarado. Lectura abierta a cualquier autenticado (staff y
-    // estudiantes ven todas — transparencia del proceso deliberativo).
-    // Solo TEEUNED puede actualizarla (descartarla o marcarla convertida
-    // al crear el proceso electoral correspondiente); Fiscalía es
-    // solo-lectura aquí igual que en el resto del sistema.
+    // carnet declarado, Y el interruptor general config/mocionesConfig no
+    // debe estar apagado (TEEUNED puede desactivar la presentación de
+    // mociones desde su panel — real a nivel de reglas, no solo ocultando
+    // el formulario en la UI; si el documento no existe, se asume
+    // habilitado por defecto). Lectura abierta a cualquier autenticado
+    // (staff y estudiantes ven todas — transparencia del proceso
+    // deliberativo) y NUNCA se bloquea, aunque esté desactivada la
+    // presentación de nuevas. Solo TEEUNED puede actualizarla (descartarla
+    // o marcarla convertida al crear el proceso electoral correspondiente);
+    // Fiscalía es solo-lectura aquí igual que en el resto del sistema.
     match /mociones/{mocionId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
         && get(/databases/$(database)/documents/padron/$(request.resource.data.carnet)).data.authUid == request.auth.uid
-        && request.resource.data.status == 'pendiente';
+        && request.resource.data.status == 'pendiente'
+        && (!exists(/databases/$(database)/documents/config/mocionesConfig)
+            || get(/databases/$(database)/documents/config/mocionesConfig).data.enabled != false);
       allow update: if isTeeuned();
       allow delete: if false;
 

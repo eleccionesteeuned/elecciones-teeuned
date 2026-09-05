@@ -442,6 +442,7 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
         <div class="nav-user-role">Fiscalía FEUNED</div>
       </div>
       <button class="btn-nav" onclick="showPane('dashboard')" id="btn-home" style="display:none">← Inicio</button>
+      <button class="btn-nav" onclick="openChangePasswordModal()">🔑 Cambiar Contraseña</button>
       <button class="btn-nav" onclick="doLogout()">Cerrar Sesión</button>
     </div>
   </nav>
@@ -568,10 +569,38 @@ document.addEventListener('DOMContentLoaded',()=>{initEmailJS();});
   </div>
 </div>
 
+<!-- Modal para que Fiscalía cambie su propia contraseña. Exige la
+     contraseña actual (reautenticación) antes de aceptar la nueva —
+     flujo estándar de Firebase Auth, sin backend. -->
+<div id="change-pass-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeChangePasswordModal()">
+  <div class="modal-box">
+    <div class="modal-title">🔑 Cambiar mi Contraseña</div>
+    <div class="modal-sub" style="margin-top:6px">Debe confirmar su contraseña actual para poder cambiarla.</div>
+    <div class="form-group" style="margin-top:12px">
+      <label class="field-label">Contraseña actual</label>
+      <input class="field" type="password" id="cp-current" autocomplete="current-password">
+    </div>
+    <div class="form-group">
+      <label class="field-label">Nueva contraseña</label>
+      <input class="field" type="password" id="cp-new" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+      <div class="field-hint">Use al menos 8 caracteres, combinando letras y números.</div>
+    </div>
+    <div class="form-group">
+      <label class="field-label">Confirmar nueva contraseña</label>
+      <input class="field" type="password" id="cp-confirm" autocomplete="new-password">
+    </div>
+    <div class="field-error" id="cp-err" style="display:none"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-secondary btn-sm" onclick="closeChangePasswordModal()">Cancelar</button>
+      <button class="btn btn-gold btn-sm" onclick="submitChangePassword()">✓ Cambiar Contraseña</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import { db, auth } from "./firebase.js";
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { signOut, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { cargarProcesos, groupByDay, startTickers, cargarProcesosAUR } from "./procesos.js";
 import { cargarMociones, agregarComentarioMocion, TIPOS_MOCION } from "./mociones.js";
 
@@ -673,6 +702,51 @@ function acceptTextModal(){
 }
 window.closeTextModal=closeTextModal;
 window.acceptTextModal=acceptTextModal;
+
+// Cambio de contraseña propia de Fiscalía (mismo flujo que TEEUNED):
+// reautentica con la contraseña actual antes de aplicar la nueva, usando
+// exclusivamente el SDK de Firebase Auth — sin backend.
+function openChangePasswordModal(){
+  ['cp-current','cp-new','cp-confirm'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('cp-err').style.display='none';
+  document.getElementById('change-pass-modal').style.display='flex';
+}
+function closeChangePasswordModal(){
+  document.getElementById('change-pass-modal').style.display='none';
+}
+function changePasswordErrorMessage(e){
+  const code=e&&e.code;
+  if(code==='auth/wrong-password'||code==='auth/invalid-credential'||code==='auth/invalid-login-credentials') return 'La contraseña actual es incorrecta.';
+  if(code==='auth/weak-password') return 'La nueva contraseña es muy débil (mínimo 6 caracteres).';
+  if(code==='auth/too-many-requests') return 'Demasiados intentos fallidos. Intente de nuevo más tarde.';
+  if(code==='auth/requires-recent-login') return 'Por seguridad, cierre sesión y vuelva a entrar antes de cambiar la contraseña.';
+  return 'Error al cambiar la contraseña. Intente de nuevo.';
+}
+async function submitChangePassword(){
+  const errEl=document.getElementById('cp-err');
+  errEl.style.display='none';
+  const current=document.getElementById('cp-current').value;
+  const nueva=document.getElementById('cp-new').value;
+  const confirm=document.getElementById('cp-confirm').value;
+  if(!current){ errEl.textContent='Ingrese su contraseña actual.'; errEl.style.display='block'; return; }
+  if(!nueva||nueva.length<8){ errEl.textContent='La nueva contraseña debe tener al menos 8 caracteres.'; errEl.style.display='block'; return; }
+  if(nueva!==confirm){ errEl.textContent='Las contraseñas no coinciden.'; errEl.style.display='block'; return; }
+  if(nueva===current){ errEl.textContent='La nueva contraseña debe ser distinta a la actual.'; errEl.style.display='block'; return; }
+  try{
+    const cred=EmailAuthProvider.credential(auth.currentUser.email,current);
+    await reauthenticateWithCredential(auth.currentUser,cred);
+    await updatePassword(auth.currentUser,nueva);
+    closeChangePasswordModal();
+    showNotif('Contraseña actualizada correctamente.');
+  }catch(e){
+    console.error(e);
+    errEl.textContent=changePasswordErrorMessage(e);
+    errEl.style.display='block';
+  }
+}
+window.openChangePasswordModal=openChangePasswordModal;
+window.closeChangePasswordModal=closeChangePasswordModal;
+window.submitChangePassword=submitChangePassword;
 
 function setMocionFilter(val,btn){
   mocionFilter=val;
